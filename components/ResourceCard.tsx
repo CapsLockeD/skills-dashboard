@@ -22,8 +22,9 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
       <div className="space-y-1.5">
         {subResources.map((sr, i) => {
           const isOpen = openIdx === i
-          const paidTools = sr.tools.filter(t => t.mustPurchase)
-          const freeTools = sr.tools.filter(t => !t.mustPurchase)
+          const tools = sr.tools ?? []
+          const paidTools = tools.filter(t => t.mustPurchase)
+          const freeTools = tools.filter(t => !t.mustPurchase)
 
           return (
             <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded">
@@ -36,7 +37,7 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-gray-200">{sr.name}</span>
-                    {sr.tools.length > 0 && (
+                    {tools.length > 0 && (
                       <div className="flex gap-1 flex-wrap">
                         {paidTools.length > 0 && (
                           <span className="text-xs px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-900 rounded">
@@ -50,7 +51,7 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                         )}
                       </div>
                     )}
-                    {sr.tools.length === 0 && (
+                    {tools.length === 0 && (
                       <span className="text-xs text-gray-600">no external tools</span>
                     )}
                   </div>
@@ -70,10 +71,10 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                     <p className="text-xs text-gray-400 leading-relaxed">{sr.description}</p>
                   )}
 
-                  {sr.tools.length > 0 && (
+                  {tools.length > 0 && (
                     <div className="space-y-1.5">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">External Tools</p>
-                      {sr.tools.map((tool, j) => (
+                      {tools.map((tool, j) => (
                         <div key={j} className="flex items-start gap-2 text-xs">
                           {tool.mustPurchase ? (
                             <ShoppingCart size={11} className="text-amber-500 mt-0.5 shrink-0" />

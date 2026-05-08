@@ -71,11 +71,40 @@ function extractFrontmatter(content: string): { name?: string; description?: str
   const match = content.match(/^---\n([\s\S]*?)\n---/)
   if (!match) return {}
   const fm = match[1]
+
   const nameMatch = fm.match(/^name:\s*(.+)$/m)
-  const descMatch = fm.match(/^description:\s*["']?([\s\S]+?)["']?$/m)
+
+  // Handle three YAML description formats:
+  //   1. Inline string:   description: "Some text"  or  description: Some text
+  //   2. Folded block:    description: >
+  //                         Continued text indented
+  //   3. Literal block:   description: |
+  //                         Continued text indented
+  let description: string | undefined
+
+  // Check for block scalar (> or |) first
+  const blockMatch = fm.match(/^description:\s*[>|]\s*\n((?:[ \t]+[^\n]*\n?)+)/m)
+  if (blockMatch) {
+    description = blockMatch[1]
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .join(' ')
+  } else {
+    // Inline — strip leading/trailing quotes if present
+    const inlineMatch = fm.match(/^description:\s*["']?(.*?)["']?\s*$/m)
+    if (inlineMatch) {
+      const val = inlineMatch[1].trim()
+      // Ignore bare '>' or '|' that are block scalar indicators with missing body
+      if (val && val !== '>' && val !== '|') {
+        description = val
+      }
+    }
+  }
+
   return {
     name: nameMatch?.[1]?.trim(),
-    description: descMatch?.[1]?.trim().replace(/\\"/g, '"').slice(0, 300),
+    description: description?.replace(/\\"/g, '"').slice(0, 400),
   }
 }
 
