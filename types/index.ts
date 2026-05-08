@@ -43,18 +43,27 @@ export interface EndpointChange {
   url: string
 }
 
-export interface N8nNodeInfo {
-  type: string
-  name: string
-  httpUrls?: string[]
-  credentials?: string[]
+export interface ToolUsage {
+  service: string        // Human-readable service name: "Apify", "OpenAI", "fal.ai"
+  purpose: string        // What this sub-skill/workflow does with it
+  mustPurchase: boolean  // Paid/credentialed service you'd need to buy when building internally
+  credentialKey?: string // n8n credential type or env var name
+  endpoint?: string      // API domain/endpoint for reference
 }
 
 export interface SubResource {
   name: string
   path: string
-  type: 'skill' | 'workflow' | 'reference' | 'script'
+  type: 'skill' | 'workflow'
   description?: string
+  tools: ToolUsage[]
+}
+
+export interface N8nNodeInfo {
+  type: string
+  name: string
+  httpUrls?: string[]
+  credentials?: string[]
 }
 
 export interface ScanResult {

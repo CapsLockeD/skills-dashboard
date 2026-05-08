@@ -6,6 +6,7 @@ import { ensureRepo, fetchUpstream, getCommitsAhead, getDiff, getRepoPath } from
 import { extractUrlsFromDiff, buildEndpointChanges } from './endpoint-extractor'
 import { reviewDiff } from './ai-reviewer'
 import { findN8nWorkflows, parseN8nWorkflow } from './n8n-parser'
+import { discoverSkillSubResources } from './skill-parser'
 
 function getDataDir(): string {
   return process.env.DATA_DIR || path.join(process.cwd(), 'data')
@@ -35,42 +36,22 @@ export function getLatestResult(resourceId: string): ScanResult | null {
   return history.results[resourceId]?.[0] ?? null
 }
 
-function discoverSubResources(repoPath: string): SubResource[] {
-  const subs: SubResource[] = []
-  if (!fs.existsSync(repoPath)) return subs
+function discoverSubResources(repoPath: string, resourceType: string): SubResource[] {
+  if (!fs.existsSync(repoPath)) return []
 
-  function walk(dir: string) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name)
-      if (entry.isDirectory()) {
-        if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
-          if (fs.existsSync(path.join(full, 'SKILL.md'))) {
-            const skillContent = fs.readFileSync(path.join(full, 'SKILL.md'), 'utf-8')
-            const nameMatch = skillContent.match(/^name:\s*(.+)$/m)
-            const descMatch = skillContent.match(/^description:\s*["']?(.+?)["']?$/m)
-            subs.push({
-              name: nameMatch?.[1]?.trim() || entry.name,
-              path: full.replace(repoPath, ''),
-              type: 'skill',
-              description: descMatch?.[1]?.trim(),
-            })
-          }
-          walk(full)
-        }
-      } else if (entry.isFile()) {
-        if (entry.name.endsWith('.py') || entry.name.endsWith('.sh')) {
-          subs.push({
-            name: entry.name,
-            path: full.replace(repoPath, ''),
-            type: 'script',
-          })
-        }
+  if (resourceType === 'n8n-workflow' || resourceType === 'mixed') {
+    // For n8n: each workflow JSON is a sub-resource with semantic tool info
+    return findN8nWorkflows(repoPath).map((wfPath) => {
+      try {
+        return parseN8nWorkflow(wfPath).subResource
+      } catch {
+        return null
       }
-    }
+    }).filter((s): s is SubResource => s !== null)
   }
 
-  walk(repoPath)
-  return subs
+  // For Claude skills and reference kits: each SKILL.md directory is a sub-skill
+  return discoverSkillSubResources(repoPath)
 }
 
 export async function scanResource(resourceId: string): Promise<ScanResult> {
@@ -107,9 +88,9 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
 
     const repoPath = getRepoPath(resourceId)
     const commitsAhead = await getCommitsAhead(git)
-    const subResources = discoverSubResources(repoPath)
+    const subResources = discoverSubResources(repoPath, resource.type)
 
-    // Parse n8n workflows if applicable
+    // For n8n workflows, also keep the flat node list for the detailed panel
     let n8nNodes: N8nNodeInfo[] | undefined
     if (resource.type === 'n8n-workflow' || resource.type === 'mixed') {
       const wfPaths = findN8nWorkflows(repoPath)

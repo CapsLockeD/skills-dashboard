@@ -2,10 +2,114 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronUp, RefreshCw, ExternalLink } from 'lucide-react'
-import { RegistryResource, ScanResult, AuthorProfile, RegistryAuthorRef, ScanStatus, ResourceType, OwnershipStatus } from '@/types'
+import { ChevronDown, ChevronUp, RefreshCw, ExternalLink, ShoppingCart, CheckCircle } from 'lucide-react'
+import { RegistryResource, ScanResult, AuthorProfile, RegistryAuthorRef, ScanStatus, ResourceType, OwnershipStatus, SubResource } from '@/types'
 import UpdatePanel from './UpdatePanel'
 import AuthorPanel from './AuthorPanel'
+
+// ── Sub-skill / Workflow breakdown component ──────────────────────────────────
+
+function SubResourceList({ subResources, type }: { subResources: SubResource[]; type: ResourceType }) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null)
+  const label = type === 'n8n-workflow' ? 'Workflows' : 'Sub-Skills'
+  const icon = type === 'n8n-workflow' ? '⚙' : '⚡'
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        {label} ({subResources.length})
+      </p>
+      <div className="space-y-1.5">
+        {subResources.map((sr, i) => {
+          const isOpen = openIdx === i
+          const paidTools = sr.tools.filter(t => t.mustPurchase)
+          const freeTools = sr.tools.filter(t => !t.mustPurchase)
+
+          return (
+            <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded">
+              {/* Sub-skill header row */}
+              <button
+                onClick={() => setOpenIdx(isOpen ? null : i)}
+                className="w-full flex items-start gap-2 p-2.5 text-left"
+              >
+                <span className="text-gray-500 text-xs mt-0.5 shrink-0">{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-200">{sr.name}</span>
+                    {sr.tools.length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {paidTools.length > 0 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-900 rounded">
+                            {paidTools.length} paid tool{paidTools.length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {freeTools.length > 0 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-green-900/30 text-green-500 border border-green-900 rounded">
+                            {freeTools.length} free
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {sr.tools.length === 0 && (
+                      <span className="text-xs text-gray-600">no external tools</span>
+                    )}
+                  </div>
+                  {sr.description && !isOpen && (
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{sr.description}</p>
+                  )}
+                </div>
+                <span className="text-gray-600 shrink-0 mt-0.5">
+                  {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </span>
+              </button>
+
+              {/* Expanded: full description + tool list */}
+              {isOpen && (
+                <div className="border-t border-gray-700/50 px-2.5 pb-2.5 pt-2 space-y-2">
+                  {sr.description && (
+                    <p className="text-xs text-gray-400 leading-relaxed">{sr.description}</p>
+                  )}
+
+                  {sr.tools.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">External Tools</p>
+                      {sr.tools.map((tool, j) => (
+                        <div key={j} className="flex items-start gap-2 text-xs">
+                          {tool.mustPurchase ? (
+                            <ShoppingCart size={11} className="text-amber-500 mt-0.5 shrink-0" />
+                          ) : (
+                            <CheckCircle size={11} className="text-green-600 mt-0.5 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <span className={`font-medium ${tool.mustPurchase ? 'text-amber-300' : 'text-green-400'}`}>
+                              {tool.service}
+                            </span>
+                            {tool.mustPurchase && (
+                              <span className="ml-1 text-amber-700 text-xs">[paid]</span>
+                            )}
+                            {tool.purpose && tool.purpose !== sr.name && (
+                              <span className="text-gray-500 ml-1">— {tool.purpose}</span>
+                            )}
+                            {tool.credentialKey && (
+                              <span className="block text-gray-600 font-mono text-xs">{tool.credentialKey}</span>
+                            )}
+                            {tool.endpoint && (
+                              <span className="block text-gray-600 font-mono text-xs truncate">{tool.endpoint}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // ── Badge configs ────────────────────────────────────────────────────────────
 
@@ -187,45 +291,9 @@ export default function ResourceCard({
             refreshing={authorRefreshing}
           />
 
-          {/* Sub-resources */}
+          {/* Sub-skills / Workflows */}
           {latestResult?.subResources && latestResult.subResources.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Sub-Resources ({latestResult.subResources.length})
-              </p>
-              <div className="space-y-1">
-                {latestResult.subResources.map((sr, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-500 font-mono">{sr.type === 'skill' ? '⚡' : sr.type === 'workflow' ? '⚙' : '📄'}</span>
-                    <span className="text-gray-300">{sr.name}</span>
-                    {sr.description && <span className="text-gray-600">— {sr.description}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* n8n Nodes */}
-          {latestResult?.n8nNodes && latestResult.n8nNodes.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                n8n Nodes ({latestResult.n8nNodes.length})
-              </p>
-              <div className="space-y-1">
-                {latestResult.n8nNodes.map((node, i) => (
-                  <div key={i} className="text-xs text-gray-400">
-                    <span className="text-gray-300">{node.name}</span>
-                    <span className="text-gray-600 ml-1">({node.type})</span>
-                    {node.httpUrls?.map((url, j) => (
-                      <span key={j} className="block ml-4 text-gray-600 font-mono truncate">{url}</span>
-                    ))}
-                    {node.credentials?.map((c, j) => (
-                      <span key={j} className="block ml-4 text-amber-700">{c}</span>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <SubResourceList subResources={latestResult.subResources} type={resource.type} />
           )}
 
           {/* Source info */}
