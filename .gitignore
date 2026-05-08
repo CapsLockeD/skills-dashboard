@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment (NEVER commit this)
+.env
+.env.local
+.env.production
+
+# Cloned repos (managed by the container, not committed)
+repos/
+
+# Scan data and author cache (runtime data, not committed)
+data/scan-results.json
+data/authors.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

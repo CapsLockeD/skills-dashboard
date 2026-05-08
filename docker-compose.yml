@@ -1,0 +1,56 @@
+services:
+  skills-dashboard:
+    build: .
+    image: skills-dashboard:latest
+    container_name: skills-dashboard
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+
+    environment:
+      NODE_ENV: production
+
+      # ── AI Provider (required) ──────────────────────────────────────────────
+      # Options: anthropic | openai | gemini | openrouter | local
+      AI_PROVIDER: ${AI_PROVIDER:-anthropic}
+      AI_API_KEY: ${AI_API_KEY}
+      AI_MODEL: ${AI_MODEL:-claude-sonnet-4-6}
+      # Only needed for "local" provider (e.g. http://your-server:11434/v1)
+      AI_BASE_URL: ${AI_BASE_URL:-}
+
+      # ── Firecrawl (optional — for author profile enrichment) ───────────────
+      # Use FIRECRAWL_URL for self-hosted, FIRECRAWL_API_KEY for Firecrawl Cloud
+      FIRECRAWL_URL: ${FIRECRAWL_URL:-}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+
+      # ── GitHub (optional — increases API rate limit for author lookups) ────
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+
+      # ── Scheduler ──────────────────────────────────────────────────────────
+      # Cron syntax. Default: every Sunday at 02:00
+      SCAN_SCHEDULE: ${SCAN_SCHEDULE:-0 2 * * 0}
+
+      # ── Internal paths (do not change unless you know what you're doing) ───
+      REPOS_DIR: /app/repos
+      DATA_DIR: /app/data
+
+    volumes:
+      # Persistent storage for cloned repos (survives container restarts)
+      - repos:/app/repos
+      # Persistent storage for scan results and author cache
+      - data:/app/data
+      # Your registry config — edit this file on the host to add/modify resources
+      - ./registry.config.json:/app/registry.config.json
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/scan"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  repos:
+    driver: local
+  data:
+    driver: local

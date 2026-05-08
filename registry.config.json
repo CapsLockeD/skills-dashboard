@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "resources": [
+    {
+      "id": "ugc-factory-skill",
+      "name": "UGC Content Factory",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "matthew-berman",
+      "upstream_git_url": "https://github.com/TheMattBerman/ugc-factory-skill.git",
+      "download_origin": "GitHub — https://github.com/TheMattBerman/ugc-factory-skill",
+      "category": "video-generation",
+      "notes": "Director-first UGC content generation using Kling 3.0 via fal.ai. 4-module pipeline: Creative Director → Cinematographer → Screenwriter → Engineer. Visuals-before-script approach.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "claude-seo",
+      "name": "Claude SEO",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "daniel-agrici",
+      "upstream_git_url": "https://github.com/AgriciDaniel/claude-seo.git",
+      "download_origin": "GitHub — https://github.com/AgriciDaniel/claude-seo",
+      "category": "seo",
+      "notes": "Comprehensive SEO analysis skill. Covers technical SEO, on-page, E-E-A-T, schema markup, sitemap, AI search optimization (GEO). Includes 6 sub-agents and Python scripts.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "vibe-marketers-skills-v2",
+      "name": "Vibe Marketing Skills v2",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "vibe-marketers",
+      "upstream_git_url": null,
+      "download_origin": "Private — Vibe Marketers community (Skool). Downloaded as Vibe-Skills-v2-Claude-Code.zip.",
+      "category": "marketing",
+      "notes": "11 marketing skills bundle built for Claude Code. Shared brand memory system, JSON schema contracts, multi-skill workflows. Includes: start-here, brand-voice, positioning-angles, keyword-research, seo-content, direct-response-copy, email-sequences, lead-magnet, newsletter, content-atomizer, creative.",
+      "skip_auto_update": true,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "vibe-vibemarketing101",
+      "name": "Vibe Marketing 101 (n8n)",
+      "type": "n8n-workflow",
+      "ownership_status": "external",
+      "author_id": "vibe-marketers",
+      "upstream_git_url": "https://github.com/the-vibe-marketers/vibemarketing101.git",
+      "download_origin": "GitHub — https://github.com/the-vibe-marketers/vibemarketing101",
+      "category": "content-automation",
+      "notes": "n8n workflow bundle: Feedback Loop, Reddit content research, Reddit scale content production.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "vibe-local-market-research",
+      "name": "Local Market Research (n8n)",
+      "type": "n8n-workflow",
+      "ownership_status": "external",
+      "author_id": "vibe-marketers",
+      "upstream_git_url": "https://github.com/the-vibe-marketers/local_market_research_n8n.git",
+      "download_origin": "GitHub — https://github.com/the-vibe-marketers/local_market_research_n8n",
+      "category": "market-research",
+      "notes": "Local market research and newsletter creation workflow. Uses Apify for data collection. Includes OAuth Google Sheets integration.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "vibe-content-scaling",
+      "name": "Content Scaling (n8n)",
+      "type": "n8n-workflow",
+      "ownership_status": "external",
+      "author_id": "vibe-marketers",
+      "upstream_git_url": "https://github.com/the-vibe-marketers/contentscaling.git",
+      "download_origin": "GitHub — https://github.com/the-vibe-marketers/contentscaling",
+      "category": "content-automation",
+      "notes": "Content scaling n8n workflow bundle: YouTube research, keyword alerts, Slack content creation, repurposing agent, YouTube viral script agent.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "creative-variants",
+      "name": "Creative Variant Generator",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": null,
+      "upstream_git_url": null,
+      "download_origin": "Private — downloaded as creative-variant-generator.zip. Source community unknown.",
+      "category": "advertising",
+      "notes": "Generates ad creative variations from a reference winning ad. Supports OpenAI gpt-image-1.5 and Google Gemini backends. Configurable divergence levels: subtle, moderate, dramatic.",
+      "skip_auto_update": true,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "search-campaign-builder",
+      "name": "Google Search Campaign Builder",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": null,
+      "upstream_git_url": null,
+      "download_origin": "Private — downloaded as search-campaign-builder.zip. Source community unknown.",
+      "category": "advertising",
+      "notes": "Takes a landing page URL and builds a complete Google Search campaign. Senior PPC strategy skill. Perry Marshall / Brad Geddes methodology.",
+      "skip_auto_update": true,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    },
+    {
+      "id": "vibe-marketing-kit",
+      "name": "Vibe Marketing Kit",
+      "type": "reference-kit",
+      "ownership_status": "external",
+      "author_id": "vibe-marketers",
+      "upstream_git_url": null,
+      "download_origin": "Private — Vibe Marketers community.",
+      "category": "marketing",
+      "notes": "Reference documentation kit: site exec summary, market dynamics, influencer patterns, content gap analysis, revenue projection, digital presence audit, MCP setup guides.",
+      "skip_auto_update": true,
+      "sub_resource_ids": [],
+      "discovered_from": null
+    }
+  ],
+  "authors": {
+    "matthew-berman": {
+      "name": "Matthew Berman",
+      "github": "TheMattBerman",
+      "twitter": "themattberman",
+      "website": "https://bigplayers.co"
+    },
+    "daniel-agrici": {
+      "name": "Daniel Agrici",
+      "github": "AgriciDaniel",
+      "twitter": null,
+      "website": null
+    },
+    "vibe-marketers": {
+      "name": "The Vibe Marketers",
+      "github": "the-vibe-marketers",
+      "twitter": null,
+      "website": null
+    }
+  }
+}
