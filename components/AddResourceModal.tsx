@@ -97,6 +97,7 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
           id: manual.id!.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
           author_id: manual.author_id || null,
           upstream_git_url: manual.upstream_git_url || null,
+          local_path: manual.local_path || null,
           download_origin: manual.download_origin || '',
           category: manual.category || 'uncategorized',
           notes: manual.notes || '',

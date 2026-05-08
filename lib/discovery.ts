@@ -93,6 +93,7 @@ export function confirmDiscovery(
       ownership_status: 'external',
       author_id: authorId,
       upstream_git_url: repoUrl,
+      local_path: null,
       download_origin: downloadOrigin,
       category: 'uncategorized',
       notes: item.description || '',

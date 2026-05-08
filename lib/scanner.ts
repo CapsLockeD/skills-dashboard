@@ -69,16 +69,32 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
   }
 
   if (!resource.upstream_git_url) {
+    // No upstream to track, but still read local files for sub-skill discovery
+    const localPath = resource.local_path
+    const subResources = localPath ? discoverSubResources(localPath, resource.type) : []
+    let n8nNodes: N8nNodeInfo[] | undefined
+    if (localPath && (resource.type === 'n8n-workflow' || resource.type === 'mixed')) {
+      const wfPaths = findN8nWorkflows(localPath)
+      n8nNodes = wfPaths.flatMap((wf) => {
+        try { return parseN8nWorkflow(wf).nodes } catch { return [] }
+      })
+    }
     return {
       ...base,
+      subResources,
+      n8nNodes,
       status: 'no-upstream',
       commitsAhead: 0,
       diff: '',
       endpointChanges: [],
-      aiSummary: 'No upstream git URL configured.',
-      aiSecurityAssessment: 'Cannot perform automated checks without an upstream source.',
+      aiSummary: localPath
+        ? 'No upstream git URL — showing sub-skills from local files.'
+        : 'No upstream git URL configured.',
+      aiSecurityAssessment: 'Cannot perform automated security checks without an upstream source.',
       aiRecommendation: null,
-      aiReasoning: 'Add upstream_git_url to registry.config.json to enable tracking.',
+      aiReasoning: localPath
+        ? 'Set upstream_git_url in registry.config.json to enable update tracking.'
+        : 'Set local_path in registry.config.json to enable sub-skill discovery.',
     }
   }
 

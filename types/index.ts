@@ -17,6 +17,7 @@ export interface RegistryResource {
   ownership_status: OwnershipStatus
   author_id: string | null
   upstream_git_url: string | null
+  local_path: string | null   // Absolute path to local files — used when no upstream_git_url
   download_origin: string
   category: string
   notes: string
