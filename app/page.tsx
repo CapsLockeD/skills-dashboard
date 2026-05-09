@@ -76,6 +76,15 @@ export default function Dashboard() {
 
   const resources = registry?.resources ?? []
 
+  const lastScanTime =
+    scanHistory?.lastGlobalScan ??
+    Object.values(scanHistory?.results ?? {})
+      .flat()
+      .map((r) => r.scannedAt)
+      .sort()
+      .at(-1) ??
+    null
+
   const filteredResources = resources.filter((r) => {
     if (filter === 'all') return true
     if (filter === 'flagged') {
@@ -101,8 +110,8 @@ export default function Dashboard() {
             <Terminal size={12} />
             <span className="font-mono text-xs">
               resources
-              {scanHistory?.lastGlobalScan
-                ? ` · last_scan=${formatDistanceToNow(new Date(scanHistory.lastGlobalScan), { addSuffix: true })}`
+              {lastScanTime
+                ? ` · last_scan=${formatDistanceToNow(new Date(lastScanTime), { addSuffix: true })}`
                 : ' · never_scanned'}
             </span>
           </div>
