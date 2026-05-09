@@ -189,5 +189,23 @@ export function discoverSkillSubResources(repoPath: string): SubResource[] {
   }
 
   walk(repoPath)
+
+  // If no sub-skill directories were found, check for a root-level SKILL.md.
+  // This covers single-skill resources where the skill IS the root (e.g. a zip download
+  // with one SKILL.md at the top level rather than a bundle of skills in subdirectories).
+  if (results.length === 0) {
+    const rootSkillMd = path.join(repoPath, 'SKILL.md')
+    if (fs.existsSync(rootSkillMd)) {
+      const { name, description, tools } = parseSkillMd(rootSkillMd)
+      results.push({
+        name,
+        path: '/SKILL.md',
+        type: 'skill',
+        description,
+        tools,
+      })
+    }
+  }
+
   return results
 }
