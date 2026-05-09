@@ -2,24 +2,23 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronUp, RefreshCw, ExternalLink, ShoppingCart, CheckCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, RefreshCw, ExternalLink, ShoppingCart, CheckCircle, Loader2 } from 'lucide-react'
 import { RegistryResource, ScanResult, AuthorProfile, RegistryAuthorRef, ScanStatus, ResourceType, OwnershipStatus, SubResource } from '@/types'
 import UpdatePanel from './UpdatePanel'
 import AuthorPanel from './AuthorPanel'
 
-// ── Sub-skill / Workflow breakdown component ──────────────────────────────────
+// ── Sub-skill / Workflow breakdown ────────────────────────────────────────────
 
 function SubResourceList({ subResources, type }: { subResources: SubResource[]; type: ResourceType }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null)
-  const label = type === 'n8n-workflow' ? 'Workflows' : 'Sub-Skills'
-  const icon = type === 'n8n-workflow' ? '⚙' : '⚡'
+  const label = type === 'n8n-workflow' ? 'workflows' : 'sub_skills'
 
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+      <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
         {label} ({subResources.length})
       </p>
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {subResources.map((sr, i) => {
           const isOpen = openIdx === i
           const tools = sr.tools ?? []
@@ -27,75 +26,58 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
           const freeTools = tools.filter(t => !t.mustPurchase)
 
           return (
-            <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded">
-              {/* Sub-skill header row */}
+            <div key={i} className="bg-zinc-900 border border-zinc-800/60 rounded">
               <button
                 onClick={() => setOpenIdx(isOpen ? null : i)}
-                className="w-full flex items-start gap-2 p-2.5 text-left"
+                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-zinc-800/30 transition-colors"
               >
-                <span className="text-gray-500 text-xs mt-0.5 shrink-0">{icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-gray-200">{sr.name}</span>
-                    {tools.length > 0 && (
-                      <div className="flex gap-1 flex-wrap">
-                        {paidTools.length > 0 && (
-                          <span className="text-xs px-1.5 py-0.5 bg-amber-900/40 text-amber-400 border border-amber-900 rounded">
-                            {paidTools.length} paid tool{paidTools.length !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {freeTools.length > 0 && (
-                          <span className="text-xs px-1.5 py-0.5 bg-green-900/30 text-green-500 border border-green-900 rounded">
-                            {freeTools.length} free
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {tools.length === 0 && (
-                      <span className="text-xs text-gray-600">no external tools</span>
-                    )}
-                  </div>
-                  {sr.description && !isOpen && (
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{sr.description}</p>
-                  )}
-                </div>
-                <span className="text-gray-600 shrink-0 mt-0.5">
-                  {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                <span className="font-mono text-[10px] text-zinc-700 shrink-0">
+                  {type === 'n8n-workflow' ? '⚙' : '→'}
                 </span>
+                <span className="font-mono text-xs text-zinc-300 flex-1 truncate">{sr.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {paidTools.length > 0 && (
+                    <span className="font-mono text-[10px] text-amber-500">
+                      {paidTools.length}p
+                    </span>
+                  )}
+                  {freeTools.length > 0 && (
+                    <span className="font-mono text-[10px] text-green-600">
+                      {freeTools.length}f
+                    </span>
+                  )}
+                  {tools.length === 0 && (
+                    <span className="font-mono text-[10px] text-zinc-700">no_tools</span>
+                  )}
+                  {isOpen ? <ChevronUp size={11} className="text-zinc-600" /> : <ChevronDown size={11} className="text-zinc-600" />}
+                </div>
               </button>
 
-              {/* Expanded: full description + tool list */}
               {isOpen && (
-                <div className="border-t border-gray-700/50 px-2.5 pb-2.5 pt-2 space-y-2">
+                <div className="border-t border-zinc-800/60 px-3 pb-3 pt-2 space-y-2">
                   {sr.description && (
-                    <p className="text-xs text-gray-400 leading-relaxed">{sr.description}</p>
+                    <p className="text-xs text-zinc-500 leading-relaxed">{sr.description}</p>
                   )}
-
                   {tools.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">External Tools</p>
+                      <p className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest">external_tools</p>
                       {tools.map((tool, j) => (
-                        <div key={j} className="flex items-start gap-2 text-xs">
-                          {tool.mustPurchase ? (
-                            <ShoppingCart size={11} className="text-amber-500 mt-0.5 shrink-0" />
-                          ) : (
-                            <CheckCircle size={11} className="text-green-600 mt-0.5 shrink-0" />
-                          )}
+                        <div key={j} className="flex items-start gap-2">
+                          {tool.mustPurchase
+                            ? <ShoppingCart size={11} className="text-amber-500 mt-0.5 shrink-0" />
+                            : <CheckCircle size={11} className="text-green-600 mt-0.5 shrink-0" />}
                           <div className="min-w-0">
-                            <span className={`font-medium ${tool.mustPurchase ? 'text-amber-300' : 'text-green-400'}`}>
+                            <span className={`font-mono text-xs ${tool.mustPurchase ? 'text-amber-400' : 'text-green-400'}`}>
                               {tool.service}
                             </span>
                             {tool.mustPurchase && (
-                              <span className="ml-1 text-amber-700 text-xs">[paid]</span>
+                              <span className="font-mono text-[10px] text-zinc-700 ml-1">[paid]</span>
                             )}
                             {tool.purpose && tool.purpose !== sr.name && (
-                              <span className="text-gray-500 ml-1">— {tool.purpose}</span>
-                            )}
-                            {tool.credentialKey && (
-                              <span className="block text-gray-600 font-mono text-xs">{tool.credentialKey}</span>
+                              <span className="text-zinc-600 text-xs ml-1">— {tool.purpose}</span>
                             )}
                             {tool.endpoint && (
-                              <span className="block text-gray-600 font-mono text-xs truncate">{tool.endpoint}</span>
+                              <span className="block font-mono text-[10px] text-zinc-700 truncate">{tool.endpoint}</span>
                             )}
                           </div>
                         </div>
@@ -112,57 +94,57 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
   )
 }
 
-// ── Badge configs ────────────────────────────────────────────────────────────
+// ── Badge configs ─────────────────────────────────────────────────────────────
 
 const TYPE_BADGES: Record<ResourceType, string> = {
-  'claude-skill': 'bg-purple-900/50 text-purple-300 border border-purple-800',
-  'n8n-workflow': 'bg-orange-900/50 text-orange-300 border border-orange-800',
-  'reference-kit': 'bg-cyan-900/50 text-cyan-300 border border-cyan-800',
-  'mixed': 'bg-gray-800 text-gray-300 border border-gray-700',
+  'claude-skill':  'border-purple-700 text-purple-400',
+  'n8n-workflow':  'border-orange-700 text-orange-400',
+  'reference-kit': 'border-cyan-700 text-cyan-400',
+  'mixed':         'border-zinc-700 text-zinc-400',
 }
 
 const TYPE_LABELS: Record<ResourceType, string> = {
-  'claude-skill': 'Claude Skill',
-  'n8n-workflow': 'n8n Workflow',
-  'reference-kit': 'Reference Kit',
-  'mixed': 'Mixed',
-}
-
-const OWNERSHIP_BADGES: Record<OwnershipStatus, string> = {
-  external: 'bg-rose-900/50 text-rose-300 border border-rose-800',
-  monitored: 'bg-amber-900/50 text-amber-300 border border-amber-800',
-  vendored: 'bg-blue-900/50 text-blue-300 border border-blue-800',
-  internal: 'bg-green-900/50 text-green-300 border border-green-800',
+  'claude-skill':  'claude-skill',
+  'n8n-workflow':  'n8n-workflow',
+  'reference-kit': 'ref-kit',
+  'mixed':         'mixed',
 }
 
 const OWNERSHIP_LABELS: Record<OwnershipStatus, string> = {
-  external: 'External',
-  monitored: 'Monitored',
-  vendored: 'Vendored',
-  internal: 'Internal',
+  external:  'external',
+  monitored: 'monitored',
+  vendored:  'vendored',
+  internal:  'internal',
 }
 
-const STATUS_BADGES: Record<ScanStatus, string> = {
-  'up-to-date': 'bg-green-900/40 text-green-400 border border-green-900',
-  'update-available': 'bg-blue-900/40 text-blue-400 border border-blue-900',
-  'security-flag': 'bg-red-900/40 text-red-400 border border-red-900 animate-pulse',
-  'no-upstream': 'bg-gray-800 text-gray-500 border border-gray-700',
-  'error': 'bg-red-900/40 text-red-400 border border-red-900',
-  'never-scanned': 'bg-gray-800 text-gray-500 border border-gray-700',
-  'scanning': 'bg-blue-900/40 text-blue-400 border border-blue-900',
+const OWNERSHIP_COLORS: Record<OwnershipStatus, string> = {
+  external:  'text-zinc-500 border-zinc-700',
+  monitored: 'text-amber-500 border-amber-800',
+  vendored:  'text-blue-400 border-blue-800',
+  internal:  'text-green-400 border-green-800',
+}
+
+const STATUS_COLORS: Record<ScanStatus, string> = {
+  'up-to-date':       'text-green-400',
+  'update-available': 'text-cyan-400',
+  'security-flag':    'text-red-400 animate-pulse',
+  'no-upstream':      'text-zinc-600',
+  'error':            'text-red-400',
+  'never-scanned':    'text-zinc-700',
+  'scanning':         'text-cyan-400',
 }
 
 const STATUS_LABELS: Record<ScanStatus, string> = {
-  'up-to-date': 'Up to Date',
-  'update-available': 'Update Available',
-  'security-flag': 'Security Flag',
-  'no-upstream': 'No Upstream',
-  'error': 'Error',
-  'never-scanned': 'Never Scanned',
-  'scanning': 'Scanning...',
+  'up-to-date':       'up-to-date',
+  'update-available': 'update-avail',
+  'security-flag':    'sec-flag',
+  'no-upstream':      'no-upstream',
+  'error':            'error',
+  'never-scanned':    'never-scanned',
+  'scanning':         'scanning...',
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface ResourceCardProps {
   resource: RegistryResource
@@ -213,77 +195,69 @@ export default function ResourceCard({
   }
 
   return (
-    <div
-      className={`bg-gray-900 border rounded-lg transition-all duration-200 ${
-        status === 'security-flag'
-          ? 'border-red-800'
-          : hasUpdate
-          ? 'border-blue-900'
-          : 'border-gray-800'
-      }`}
-    >
-      {/* ── Compact header ── */}
-      <div
-        className="flex items-start gap-3 p-4 cursor-pointer select-none"
+    <div className={`bg-[#0f0f0f] border rounded overflow-hidden transition-colors ${
+      status === 'security-flag'
+        ? 'border-red-800/60'
+        : hasUpdate
+        ? 'border-cyan-800/40'
+        : 'border-zinc-800/60'
+    }`}>
+      {/* Collapsed row */}
+      <button
         onClick={() => setExpanded(!expanded)}
+        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-zinc-800/30 transition-colors"
       >
-        <div className="flex-1 min-w-0">
-          {/* Top row: badges */}
-          <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TYPE_BADGES[resource.type]}`}>
-              {TYPE_LABELS[resource.type]}
-            </span>
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${OWNERSHIP_BADGES[resource.ownership_status]}`}>
-              {OWNERSHIP_LABELS[resource.ownership_status]}
-            </span>
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${STATUS_BADGES[status]}`}>
-              {STATUS_LABELS[status]}
-            </span>
-          </div>
-
-          {/* Name */}
-          <h3 className="text-base font-semibold text-white truncate">{resource.name}</h3>
-
-          {/* Meta row */}
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-            {authorRef && <span>{authorRef.name}</span>}
-            {authorRef && resource.category && <span>·</span>}
-            {resource.category && <span className="capitalize">{resource.category.replace(/-/g, ' ')}</span>}
-            {latestResult && (
-              <>
-                <span>·</span>
-                <span>
-                  scanned{' '}
-                  {formatDistanceToNow(new Date(latestResult.scannedAt), { addSuffix: true })}
-                </span>
-              </>
-            )}
-          </div>
+        {/* Type + ownership badges */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded border ${TYPE_BADGES[resource.type]}`}>
+            {TYPE_LABELS[resource.type]}
+          </span>
+          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded border ${OWNERSHIP_COLORS[resource.ownership_status]}`}>
+            {OWNERSHIP_LABELS[resource.ownership_status]}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+        {/* Name */}
+        <span className="font-mono text-sm font-semibold text-zinc-100 flex-1 truncate min-w-0">
+          {resource.name}
+        </span>
+
+        {/* Status */}
+        <span className={`font-mono text-[10px] shrink-0 ${STATUS_COLORS[status]}`}>
+          [{STATUS_LABELS[status]}]
+        </span>
+
+        {/* Meta */}
+        <span className="hidden lg:block text-xs text-zinc-700 shrink-0 truncate max-w-[200px]">
+          {[
+            authorRef?.name,
+            resource.category?.replace(/-/g, ' '),
+            latestResult ? `${formatDistanceToNow(new Date(latestResult.scannedAt), { addSuffix: true })}` : null,
+          ].filter(Boolean).join(' · ')}
+        </span>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleScanNow()
-            }}
+            onClick={handleScanNow}
             disabled={scanning}
-            title="Check for updates now"
-            className="p-1.5 text-gray-500 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors disabled:opacity-40"
+            title="Scan now"
+            className="p-1.5 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded transition-colors disabled:opacity-40"
           >
-            <RefreshCw size={14} className={scanning ? 'animate-spin' : ''} />
+            {scanning
+              ? <Loader2 size={13} className="animate-spin" />
+              : <RefreshCw size={13} />}
           </button>
-          {expanded ? (
-            <ChevronUp size={16} className="text-gray-500" />
-          ) : (
-            <ChevronDown size={16} className="text-gray-500" />
-          )}
         </div>
-      </div>
 
-      {/* ── Expanded content ── */}
+        {expanded
+          ? <ChevronUp size={13} className="text-zinc-600 shrink-0" />
+          : <ChevronDown size={13} className="text-zinc-600 shrink-0" />}
+      </button>
+
+      {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-gray-800 p-4 space-y-4">
+        <div className="border-t border-zinc-800/60 px-4 py-4 space-y-4">
           {/* Author */}
           <AuthorPanel
             authorRef={authorRef}
@@ -297,19 +271,19 @@ export default function ResourceCard({
             <SubResourceList subResources={latestResult.subResources} type={resource.type} />
           )}
 
-          {/* Source info */}
+          {/* Source */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Source</p>
-            <p className="text-xs text-gray-400">{resource.download_origin || 'Not specified'}</p>
+            <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1.5">source</p>
+            <p className="text-xs text-zinc-500">{resource.download_origin || 'Not specified'}</p>
             {resource.upstream_git_url && (
               <a
                 href={resource.upstream_git_url.replace(/\.git$/, '')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
+                className="inline-flex items-center gap-1 font-mono text-xs text-cyan-500 hover:text-cyan-400 mt-1 transition-colors"
               >
                 <ExternalLink size={11} />
-                View repository
+                view_repo
               </a>
             )}
           </div>
@@ -317,16 +291,16 @@ export default function ResourceCard({
           {/* Notes */}
           {resource.notes && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Notes</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{resource.notes}</p>
+              <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1.5">notes</p>
+              <p className="text-xs text-zinc-500 leading-relaxed">{resource.notes}</p>
             </div>
           )}
 
           {/* Error */}
           {latestResult?.error && (
-            <div className="bg-red-900/20 border border-red-900 rounded p-2.5">
-              <p className="text-xs font-semibold text-red-400 mb-0.5">Scan Error</p>
-              <p className="text-xs text-red-300 font-mono">{latestResult.error}</p>
+            <div className="bg-red-950/30 border border-red-900/50 rounded p-2.5">
+              <p className="font-mono text-[10px] text-red-400 mb-1 uppercase tracking-widest">scan_error</p>
+              <p className="font-mono text-xs text-red-300">{latestResult.error}</p>
             </div>
           )}
 
