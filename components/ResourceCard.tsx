@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronUp, RefreshCw, ExternalLink, ShoppingCart, CheckCircle, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, RefreshCw, ExternalLink, ShoppingCart, CheckCircle, Loader2, Trash2 } from 'lucide-react'
 import { RegistryResource, ScanResult, AuthorProfile, RegistryAuthorRef, ScanStatus, ResourceType, OwnershipStatus, SubResource } from '@/types'
 import UpdatePanel from './UpdatePanel'
 import AuthorPanel from './AuthorPanel'
+import ScanProgressBar from './ScanProgressBar'
 
 // ── Sub-skill / Workflow breakdown ────────────────────────────────────────────
 
@@ -38,36 +39,76 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {paidTools.length > 0 && (
                     <span className="font-mono text-[10px] text-amber-500">
-                      {paidTools.length}p
+                      {paidTools.length} paid
                     </span>
                   )}
                   {freeTools.length > 0 && (
                     <span className="font-mono text-[10px] text-green-600">
-                      {freeTools.length}f
+                      {freeTools.length} free
                     </span>
                   )}
                   {tools.length === 0 && (
-                    <span className="font-mono text-[10px] text-zinc-700">no_tools</span>
+                    <span className="font-mono text-[10px] text-zinc-700">no tools</span>
                   )}
                   {isOpen ? <ChevronUp size={11} className="text-zinc-600" /> : <ChevronDown size={11} className="text-zinc-600" />}
                 </div>
               </button>
 
               {isOpen && (
-                <div className="border-t border-zinc-800/60 px-3 pb-3 pt-2 space-y-2">
-                  {sr.description && (
-                    <p className="text-xs text-zinc-500 leading-relaxed">{sr.description}</p>
+                <div className="border-t border-zinc-800/60 px-3 pb-3 pt-2 space-y-2.5">
+                  {/* Description or AI summary */}
+                  {(sr.enrichment?.summary || sr.description) && (
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      {sr.enrichment?.summary || sr.description}
+                    </p>
                   )}
-                  {tools.length > 0 && (
+
+                  {/* AI enrichment metadata */}
+                  {sr.enrichment && (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      {sr.enrichment.useCase && (
+                        <div>
+                          <p className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest mb-0.5">use_case</p>
+                          <p className="text-xs text-zinc-500">{sr.enrichment.useCase}</p>
+                        </div>
+                      )}
+                      {sr.enrichment.output && (
+                        <div>
+                          <p className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest mb-0.5">output</p>
+                          <p className="text-xs text-zinc-500">{sr.enrichment.output}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        {sr.enrichment.category && (
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 border border-zinc-700 rounded text-zinc-400">
+                            {sr.enrichment.category}
+                          </span>
+                        )}
+                        <span className={`font-mono text-[10px] ${
+                          sr.enrichment.complexity === 'beginner' ? 'text-green-500' :
+                          sr.enrichment.complexity === 'advanced' ? 'text-red-400' :
+                          'text-cyan-500'
+                        }`}>
+                          [{sr.enrichment.complexity}]
+                        </span>
+                        {!sr.enrichment.standalone && (
+                          <span className="font-mono text-[10px] text-zinc-600">chains</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tools (from regex + AI-detected) */}
+                  {(tools.length > 0 || (sr.enrichment?.detectedTools?.length ?? 0) > 0) && (
                     <div className="space-y-1.5">
                       <p className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest">external_tools</p>
                       {tools.map((tool, j) => (
                         <div key={j} className="flex items-start gap-2">
                           {tool.mustPurchase
-                            ? <ShoppingCart size={11} className="text-amber-500 mt-0.5 shrink-0" />
+                            ? <ShoppingCart size={11} className="text-zinc-500 mt-0.5 shrink-0" />
                             : <CheckCircle size={11} className="text-green-600 mt-0.5 shrink-0" />}
                           <div className="min-w-0">
-                            <span className={`font-mono text-xs ${tool.mustPurchase ? 'text-amber-400' : 'text-green-400'}`}>
+                            <span className={`font-mono text-xs ${tool.mustPurchase ? 'text-zinc-300' : 'text-green-400'}`}>
                               {tool.service}
                             </span>
                             {tool.mustPurchase && (
@@ -76,10 +117,16 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                             {tool.purpose && tool.purpose !== sr.name && (
                               <span className="text-zinc-600 text-xs ml-1">— {tool.purpose}</span>
                             )}
-                            {tool.endpoint && (
-                              <span className="block font-mono text-[10px] text-zinc-700 truncate">{tool.endpoint}</span>
-                            )}
                           </div>
+                        </div>
+                      ))}
+                      {sr.enrichment?.detectedTools?.filter(t =>
+                        !tools.some(existing => existing.service.toLowerCase().includes(t.toLowerCase()))
+                      ).map((t, j) => (
+                        <div key={`ai-${j}`} className="flex items-start gap-2">
+                          <span className="font-mono text-[10px] text-zinc-700 mt-0.5 shrink-0">?</span>
+                          <span className="font-mono text-xs text-zinc-500">{t}</span>
+                          <span className="font-mono text-[10px] text-zinc-700">[ai-detected]</span>
                         </div>
                       ))}
                     </div>
@@ -153,6 +200,8 @@ interface ResourceCardProps {
   authorRef: RegistryAuthorRef | null
   onResultUpdate: (result: ScanResult) => void
   onAuthorRefresh: (authorId: string) => Promise<void>
+  onDelete: (id: string) => void
+  externalScanning?: boolean
 }
 
 export default function ResourceCard({
@@ -162,22 +211,42 @@ export default function ResourceCard({
   authorRef,
   onResultUpdate,
   onAuthorRefresh,
+  onDelete,
+  externalScanning = false,
 }: ResourceCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const [scanning, setScanning] = useState(false)
+  const [internalScanning, setInternalScanning] = useState(false)
+  const scanning = internalScanning || externalScanning
   const [authorRefreshing, setAuthorRefreshing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  async function handleDelete() {
+    await fetch('/api/registry', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: resource.id }),
+    })
+    onDelete(resource.id)
+  }
 
   const status: ScanStatus = scanning ? 'scanning' : (latestResult?.status ?? 'never-scanned')
   const hasUpdate = status === 'update-available' || status === 'security-flag'
 
   async function handleScanNow() {
-    setScanning(true)
+    setInternalScanning(true)
     try {
-      const res = await fetch(`/api/scan/${resource.id}`, { method: 'POST' })
+      const res = await fetch(`/api/scan/${encodeURIComponent(resource.id)}`, { method: 'POST' })
+      if (!res.ok) {
+        const text = await res.text()
+        console.error(`[scan] ${resource.id} → HTTP ${res.status}:`, text)
+        return
+      }
       const result = await res.json()
       onResultUpdate(result)
+    } catch (err) {
+      console.error(`[scan] ${resource.id} → error:`, err)
     } finally {
-      setScanning(false)
+      setInternalScanning(false)
     }
   }
 
@@ -200,12 +269,14 @@ export default function ResourceCard({
         ? 'border-red-800/60'
         : hasUpdate
         ? 'border-cyan-800/40'
+        : scanning
+        ? 'border-cyan-900/40'
         : 'border-zinc-800/60'
     }`}>
-      {/* Collapsed row */}
-      <button
+      {/* Collapsed row — div to avoid invalid button-in-button nesting */}
+      <div
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-zinc-800/30 transition-colors"
+        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-zinc-800/30 transition-colors cursor-pointer"
       >
         {/* Type + ownership badges */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -253,7 +324,10 @@ export default function ResourceCard({
         {expanded
           ? <ChevronUp size={13} className="text-zinc-600 shrink-0" />
           : <ChevronDown size={13} className="text-zinc-600 shrink-0" />}
-      </button>
+      </div>
+
+      {/* Scan progress bar — shown when scanning is active */}
+      <ScanProgressBar resourceId={resource.id} scanning={scanning} />
 
       {/* Expanded content */}
       {expanded && (
@@ -312,6 +386,35 @@ export default function ResourceCard({
               onCheckNow={handleScanNow}
             />
           )}
+
+          {/* Delete */}
+          <div className="pt-2 border-t border-zinc-800/60 flex justify-end">
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-zinc-500">confirm delete?</span>
+                <button
+                  onClick={handleDelete}
+                  className="font-mono text-xs text-red-400 hover:text-red-300 px-2 py-1 border border-red-800/60 rounded hover:bg-red-900/20 transition-colors"
+                >
+                  yes, delete
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="font-mono text-xs text-zinc-600 hover:text-zinc-300 px-2 py-1 border border-zinc-800 rounded hover:bg-zinc-800 transition-colors"
+                >
+                  cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 font-mono text-xs text-zinc-700 hover:text-red-400 transition-colors"
+              >
+                <Trash2 size={11} />
+                delete resource
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

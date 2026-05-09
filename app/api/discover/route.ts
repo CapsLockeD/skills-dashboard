@@ -19,8 +19,8 @@ export async function POST(req: Request) {
 
     if (action === 'confirm') {
       const { selectedIds, allDiscovered, authorId, downloadOrigin } = body
-      confirmDiscovery(repoUrl, selectedIds, allDiscovered, authorId, downloadOrigin || repoUrl)
-      return NextResponse.json({ success: true, added: selectedIds.length })
+      const id = confirmDiscovery(repoUrl, selectedIds, allDiscovered, authorId, downloadOrigin || repoUrl)
+      return NextResponse.json({ success: true, added: selectedIds.length, id })
     }
 
     return NextResponse.json({ error: 'action must be "discover" or "confirm"' }, { status: 400 })

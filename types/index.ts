@@ -52,12 +52,24 @@ export interface ToolUsage {
   endpoint?: string      // API domain/endpoint for reference
 }
 
+export interface SubResourceEnrichment {
+  summary: string       // What this skill does and when you'd use it
+  category: string      // e.g. developer-tooling, seo, content-marketing
+  useCase: string       // Specific scenario where most valuable
+  output: string        // What it produces / delivers
+  complexity: string    // beginner | intermediate | advanced
+  standalone: boolean   // false = designed to chain with other skills
+  detectedTools: string[] // AI-spotted services not caught by regex
+  enrichedAt: string
+}
+
 export interface SubResource {
   name: string
   path: string
   type: 'skill' | 'workflow'
   description?: string
   tools: ToolUsage[]
+  enrichment?: SubResourceEnrichment
 }
 
 export interface N8nNodeInfo {
@@ -97,8 +109,9 @@ export interface AuthorProfile {
   bio?: string
   authority?: string
   whyTrust?: string
-  socials: { platform: string; url: string; handle?: string }[]
+  socials: { platform: string; url: string; handle?: string; aiGuessed?: boolean }[]
   enrichedAt?: string
+  aiDiscoveredSocials?: boolean  // true when socials were inferred by AI, not confirmed
 }
 
 export interface AuthorCache {

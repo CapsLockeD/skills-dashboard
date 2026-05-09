@@ -19,9 +19,12 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-}
 
       # ── Firecrawl (optional — for author profile enrichment) ───────────────
-      # Use FIRECRAWL_URL for self-hosted, FIRECRAWL_API_KEY for Firecrawl Cloud
-      FIRECRAWL_URL: ${FIRECRAWL_URL:-}
+      # Use FIRECRAWL_API_URL for self-hosted, FIRECRAWL_API_KEY for Firecrawl Cloud
+      FIRECRAWL_API_URL: ${FIRECRAWL_API_URL:-}
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+
+      # ── Brave Search (optional — web search for author social discovery) ───
+      BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
 
       # ── GitHub (optional — increases API rate limit for author lookups) ────
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
@@ -41,6 +44,12 @@ services:
       - data:/app/data
       # Your registry config — edit this file on the host to add/modify resources
       - ./registry.config.json:/app/registry.config.json
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/scan"]

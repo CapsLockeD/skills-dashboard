@@ -7,7 +7,7 @@ import { RegistryResource, ResourceType, OwnershipStatus } from '@/types'
 
 interface AddResourceModalProps {
   onClose: () => void
-  onAdded: () => void
+  onAdded: (newResourceId?: string) => void
 }
 
 type Mode = 'choose' | 'discover' | 'manual'
@@ -20,6 +20,7 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
   // Discovery state
   const [discoverUrl, setDiscoverUrl] = useState('')
   const [discovered, setDiscovered] = useState<DiscoveredResource[]>([])
+  const [hasScanned, setHasScanned] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [downloadOrigin, setDownloadOrigin] = useState('')
   const [authorId, setAuthorId] = useState('')
@@ -48,6 +49,7 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
       if (!res.ok) throw new Error(data.error || 'Discovery failed')
       setDiscovered(data.discovered)
       setSelected(new Set(data.discovered.map((d: DiscoveredResource) => d.id)))
+      setHasScanned(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -73,7 +75,7 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Confirm failed')
-      onAdded()
+      onAdded(data.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -105,7 +107,7 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Add failed')
-      onAdded()
+      onAdded(data.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -177,32 +179,33 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
                 </div>
               </div>
 
-              {discovered.length > 0 && (
+              {hasScanned && (
                 <>
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">
-                      Found {discovered.length} resource{discovered.length !== 1 ? 's' : ''}. Select to import:
-                    </p>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {discovered.map((d) => (
-                        <label key={d.id} className="flex items-start gap-2 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(d.id)}
-                            onChange={(e) => {
-                              const next = new Set(selected)
-                              e.target.checked ? next.add(d.id) : next.delete(d.id)
-                              setSelected(next)
-                            }}
-                            className="mt-0.5 accent-blue-500"
-                          />
-                          <div>
-                            <p className="text-xs text-white group-hover:text-blue-300 transition-colors">{d.name}</p>
-                            {d.description && <p className="text-xs text-gray-600">{d.description}</p>}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
+                    {discovered.length > 0 ? (
+                      <>
+                        <p className="text-xs text-gray-400 mb-1">
+                          Found <span className="text-white font-medium">{discovered.length}</span> sub-skill{discovered.length !== 1 ? 's' : ''} — importing as <span className="text-white font-medium">one tracked resource</span>.
+                        </p>
+                        <p className="text-xs text-gray-600 mb-2">Sub-skills are discovered automatically on each scan.</p>
+                        <div className="space-y-1 max-h-48 overflow-y-auto bg-gray-800/40 rounded p-2">
+                          {discovered.map((d) => (
+                            <div key={d.id} className="flex items-start gap-2">
+                              <span className="text-gray-600 text-xs mt-0.5 shrink-0">→</span>
+                              <div>
+                                <p className="text-xs text-gray-300">{d.name}</p>
+                                {d.description && <p className="text-xs text-gray-600">{d.description}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-gray-800/40 rounded p-3">
+                        <p className="text-xs text-gray-400">No SKILL.md files or n8n workflows detected in this repo.</p>
+                        <p className="text-xs text-gray-600 mt-1">You can still import it — sub-skills will be discovered when you run a scan.</p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -227,11 +230,11 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
 
                   <button
                     onClick={handleConfirmDiscovery}
-                    disabled={loading || selected.size === 0}
+                    disabled={loading}
                     className="w-full py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium rounded transition-colors flex items-center justify-center gap-1.5"
                   >
                     {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                    Import {selected.size} Selected
+                    Import Resource
                   </button>
                 </>
               )}

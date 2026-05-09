@@ -7,6 +7,8 @@ import { extractUrlsFromDiff, buildEndpointChanges } from './endpoint-extractor'
 import { reviewDiff } from './ai-reviewer'
 import { findN8nWorkflows, parseN8nWorkflow } from './n8n-parser'
 import { discoverSkillSubResources } from './skill-parser'
+import { isEnrichable, enrichBatch } from './skill-enricher'
+import { initProgress, setTotal, logProgress, doneProgress } from './progress-store'
 
 function getDataDir(): string {
   return process.env.DATA_DIR || path.join(process.cwd(), 'data')
@@ -34,6 +36,52 @@ export function writeScanHistory(history: ScanHistory): void {
 export function getLatestResult(resourceId: string): ScanResult | null {
   const history = readScanHistory()
   return history.results[resourceId]?.[0] ?? null
+}
+
+/** Resolve the filesystem path for a sub-resource given the repo root. */
+function skillDirFromSubResource(repoPath: string, srPath: string): string {
+  const full = path.join(repoPath, srPath)
+  // Root-level SKILL.md → use repo root so all skill files are included.
+  // Any other .md file (e.g. reference-kit docs) → use the file itself directly.
+  if (path.basename(srPath) === 'SKILL.md') return path.dirname(full)
+  return full
+}
+
+/** For claude-skill sub-resources that are thin, enrich them with AI. */
+async function enrichThinSubSkills(
+  subResources: SubResource[],
+  repoPath: string,
+  resourceId: string
+): Promise<void> {
+  const toEnrich = subResources.filter(
+    (sr) => sr.type === 'skill' && isEnrichable(sr.description, sr.tools.length)
+  )
+  if (toEnrich.length === 0) {
+    doneProgress(resourceId, '[scanner] no thin skills to enrich')
+    return
+  }
+
+  // Update the total now that we know how many skills we're enriching
+  setTotal(resourceId, toEnrich.length)
+
+  const items = toEnrich.map((sr) => ({
+    skillDir: skillDirFromSubResource(repoPath, sr.path),
+    cacheKey: `${resourceId}:${sr.path}`,
+    sr,
+  }))
+
+  const enrichmentMap = await enrichBatch(
+    items.map(({ skillDir, cacheKey }) => ({ skillDir, cacheKey })),
+    5,
+    resourceId
+  )
+
+  for (const { skillDir, sr } of items) {
+    const enrichment = enrichmentMap.get(skillDir)
+    if (enrichment) sr.enrichment = enrichment
+  }
+
+  doneProgress(resourceId, '[scanner] enrichment complete')
 }
 
 function discoverSubResources(repoPath: string, resourceType: string): SubResource[] {
@@ -68,6 +116,10 @@ function discoverSubResources(repoPath: string, resourceType: string): SubResour
 }
 
 export async function scanResource(resourceId: string): Promise<ScanResult> {
+  // Init progress store for this scan (total will be updated once we know skill count)
+  initProgress(resourceId, 1)
+  logProgress(resourceId, `[scanner] starting scan for ${resourceId}`)
+
   const registry = readRegistry()
   const resource = registry.resources.find((r) => r.id === resourceId)
 
@@ -78,6 +130,7 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
   }
 
   if (!resource) {
+    doneProgress(resourceId, '[scanner] error: resource not found')
     return { ...base, status: 'error', commitsAhead: 0, diff: '', endpointChanges: [], aiSummary: '', aiSecurityAssessment: '', aiRecommendation: null, aiReasoning: '', error: 'Resource not found in registry' }
   }
 
@@ -92,6 +145,12 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
         try { return parseN8nWorkflow(wf).nodes } catch { return [] }
       })
     }
+    if (localPath && resource.type !== 'n8n-workflow') {
+      await enrichThinSubSkills(subResources, localPath, resourceId)
+    } else {
+      doneProgress(resourceId, '[scanner] done')
+    }
+
     return {
       ...base,
       subResources,
@@ -112,12 +171,15 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
   }
 
   try {
+    logProgress(resourceId, '[scanner] cloning / fetching upstream...')
     const git = await ensureRepo(resourceId, resource.upstream_git_url)
     await fetchUpstream(git)
 
     const repoPath = getRepoPath(resourceId)
     const commitsAhead = await getCommitsAhead(git)
+    logProgress(resourceId, `[scanner] ${commitsAhead} commits ahead — discovering sub-resources...`)
     const subResources = discoverSubResources(repoPath, resource.type)
+    logProgress(resourceId, `[scanner] found ${subResources.length} sub-resources`)
 
     // For n8n workflows, also keep the flat node list for the detailed panel
     let n8nNodes: N8nNodeInfo[] | undefined
@@ -128,7 +190,14 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
       })
     }
 
+    if (resource.type !== 'n8n-workflow') {
+      await enrichThinSubSkills(subResources, repoPath, resourceId)
+    }
+    // n8n-workflow skips enrichment — if up-to-date early return already fired doneProgress
+    // The doneProgress below handles the update-available/security-flag path
+
     if (commitsAhead === 0) {
+      doneProgress(resourceId, '[scanner] up to date with upstream')
       return {
         ...base,
         status: 'up-to-date',
@@ -144,6 +213,7 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
       }
     }
 
+    logProgress(resourceId, `[scanner] ${commitsAhead} commits behind — fetching diff...`)
     const diff = await getDiff(git)
 
     // Compare endpoint changes against previous scan
@@ -152,8 +222,10 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
     const { added, removed } = extractUrlsFromDiff(diff)
     const endpointChanges = buildEndpointChanges(previousUrls, added, removed)
 
+    logProgress(resourceId, '[scanner] running AI security review...')
     const review = await reviewDiff(resource.name, resource.type, diff, endpointChanges)
     const status = review.recommendation === 'DO_NOT_MERGE' ? 'security-flag' : 'update-available'
+    doneProgress(resourceId, `[scanner] done — ${status}`)
 
     return {
       ...base,
@@ -169,6 +241,8 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
       n8nNodes,
     }
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err)
+    doneProgress(resourceId, `[scanner] error: ${errMsg}`)
     return {
       ...base,
       status: 'error',
@@ -179,7 +253,7 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
       aiSecurityAssessment: '',
       aiRecommendation: null,
       aiReasoning: '',
-      error: err instanceof Error ? err.message : String(err),
+      error: errMsg,
     }
   }
 }
@@ -200,10 +274,20 @@ export async function scanAll(): Promise<void> {
   writeScanHistory(history)
 }
 
+// Serialize all writes to prevent race conditions when multiple scans run in parallel
+let writeQueue: Promise<void> = Promise.resolve()
+
 export function saveSingleResult(result: ScanResult): void {
-  const history = readScanHistory()
-  if (!history.results[result.resourceId]) history.results[result.resourceId] = []
-  history.results[result.resourceId].unshift(result)
-  history.results[result.resourceId] = history.results[result.resourceId].slice(0, 10)
-  writeScanHistory(history)
+  writeQueue = writeQueue
+    .then(() => {
+      const history = readScanHistory()
+      if (!history.results[result.resourceId]) history.results[result.resourceId] = []
+      history.results[result.resourceId].unshift(result)
+      history.results[result.resourceId] = history.results[result.resourceId].slice(0, 10)
+      writeScanHistory(history)
+    })
+    .catch((err) => {
+      // Swallow so the queue never stays permanently rejected
+      console.error('[scanner] saveSingleResult failed:', err)
+    })
 }

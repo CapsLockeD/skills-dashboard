@@ -71,43 +71,105 @@ export async function discoverFromRepo(repoUrl: string): Promise<DiscoveredResou
     }
   }
 
+  // Check for a root-level SKILL.md (single-skill repos)
+  const rootSkillMd = path.join(repoPath, 'SKILL.md')
+  if (fs.existsSync(rootSkillMd) && !seen.has('root')) {
+    const content = fs.readFileSync(rootSkillMd, 'utf-8')
+    const nameMatch = content.match(/^name:\s*(.+)$/m)
+    const descMatch = content.match(/^description:\s*["']?(.+?)["']?$/m)
+    const rawName = nameMatch?.[1]?.trim() || path.basename(repoPath)
+    const id = slugify(rawName)
+    if (!seen.has(id)) {
+      seen.add(id)
+      discovered.push({
+        id,
+        name: rawName,
+        relativePath: '/SKILL.md',
+        type: 'claude-skill',
+        description: descMatch?.[1]?.trim(),
+      })
+    }
+  }
+
   walk(repoPath)
   return discovered
 }
 
 export function confirmDiscovery(
   repoUrl: string,
-  selectedIds: string[],
+  _selectedIds: string[],
   allDiscovered: DiscoveredResource[],
   authorId: string | null,
   downloadOrigin: string
-): void {
+): string {
   const registry = readRegistry()
-  const toAdd = allDiscovered.filter((d) => selectedIds.includes(d.id))
 
-  for (const item of toAdd) {
-    const resource: RegistryResource = {
-      id: item.id,
-      name: item.name,
-      type: item.type,
-      ownership_status: 'external',
-      author_id: authorId,
-      upstream_git_url: repoUrl,
-      local_path: null,
-      download_origin: downloadOrigin,
-      category: 'uncategorized',
-      notes: item.description || '',
-      skip_auto_update: false,
-      sub_resource_ids: [],
-      discovered_from: repoUrl,
-    }
-    const idx = registry.resources.findIndex((r) => r.id === item.id)
-    if (idx >= 0) {
-      registry.resources[idx] = resource
-    } else {
-      registry.resources.push(resource)
+  // If no authorId was provided but the URL is a GitHub URL, auto-extract the username
+  const resolvedAuthorId =
+    authorId ||
+    repoUrl.match(/github\.com\/([^/]+)/)?.[1]?.toLowerCase() ||
+    null
+
+  // Always create ONE resource per repo — sub-skills are discovered at scan time.
+  // Derive a stable ID and display name from the repo URL.
+  const repoSlug = repoUrl
+    .replace(/^https?:\/\//, '')
+    .replace(/\.git$/, '')
+    .split('/')
+    .slice(-2)        // ['owner', 'repo-name']
+    .join('/')
+  const repoName = repoSlug.split('/').pop() ?? repoSlug
+  const id = slugify(repoName)
+
+  // Determine type from discovered items
+  const types = new Set(allDiscovered.map((d) => d.type))
+  const type: ResourceType =
+    types.size === 0 ? 'claude-skill' :
+    types.size === 1 ? ([...types][0] as ResourceType) :
+    'mixed'
+
+  // Build a notes summary from what was found
+  const skillCount = allDiscovered.filter((d) => d.type === 'claude-skill').length
+  const workflowCount = allDiscovered.filter((d) => d.type === 'n8n-workflow').length
+  const noteParts = [
+    skillCount > 0 ? `${skillCount} Claude skill${skillCount !== 1 ? 's' : ''}` : '',
+    workflowCount > 0 ? `${workflowCount} n8n workflow${workflowCount !== 1 ? 's' : ''}` : '',
+  ].filter(Boolean)
+  const notes = noteParts.length > 0 ? `${noteParts.join(', ')} — sub-skills discovered on scan.` : ''
+
+  const resource: RegistryResource = {
+    id,
+    name: repoName.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    type,
+    ownership_status: 'external',
+    author_id: resolvedAuthorId,
+    upstream_git_url: repoUrl,
+    local_path: null,
+    download_origin: downloadOrigin || repoUrl,
+    category: 'uncategorized',
+    notes,
+    skip_auto_update: false,
+    sub_resource_ids: [],
+    discovered_from: repoUrl,
+  }
+
+  const idx = registry.resources.findIndex((r) => r.id === id)
+  if (idx >= 0) {
+    registry.resources[idx] = resource
+  } else {
+    registry.resources.push(resource)
+  }
+
+  // Auto-create a stub author entry if the resolved author is new.
+  if (resolvedAuthorId && !registry.authors[resolvedAuthorId]) {
+    const githubMatch = repoUrl.match(/github\.com\/([^/]+)/)
+    const githubUsername = githubMatch?.[1] ?? resolvedAuthorId
+    registry.authors[resolvedAuthorId] = {
+      name: githubUsername,
+      github: githubUsername,
     }
   }
 
   writeRegistry(registry)
+  return id
 }

@@ -68,3 +68,11 @@ export async function getLocalCommitHash(git: SimpleGit): Promise<string> {
   const result = await git.raw(['rev-parse', 'HEAD'])
   return result.trim()
 }
+
+export function deleteRepo(resourceId: string): void {
+  const repoPath = getRepoPath(resourceId)
+  if (fs.existsSync(repoPath)) {
+    fs.rmSync(repoPath, { recursive: true, force: true })
+    console.log(`[git-ops] deleted repo for ${resourceId}`)
+  }
+}

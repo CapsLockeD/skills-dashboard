@@ -79,7 +79,7 @@ export async function aiComplete(
   const response = await client.chat.completions.create({
     model,
     messages,
-    max_tokens: 2048,
+    max_tokens: 8192,
   })
 
   return response.choices[0]?.message?.content || ''

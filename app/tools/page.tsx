@@ -20,6 +20,7 @@ export default function ToolsPage() {
   const [tools, setTools] = useState<AggregatedTool[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<ToolCategory | 'all'>('all')
+  const [search, setSearch] = useState('')
   const [expandedTool, setExpandedTool] = useState<string | null>(null)
 
   useEffect(() => {
@@ -31,9 +32,19 @@ export default function ToolsPage() {
       })
   }, [])
 
-  const filtered = categoryFilter === 'all'
-    ? tools
-    : tools.filter((t) => t.category === categoryFilter)
+  const filtered = tools.filter((t) => {
+    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      t.service.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.competitors.some((c) => c.toLowerCase().includes(q)) ||
+      t.usedBy.some(
+        (u) => u.skillName.toLowerCase().includes(q) || u.resourceName.toLowerCase().includes(q)
+      )
+    )
+  })
 
   const paidCount = tools.filter((t) => t.mustPurchase).length
   const freeCount = tools.length - paidCount
@@ -73,7 +84,16 @@ export default function ToolsPage() {
           ))}
         </div>
 
-        {/* Category filter */}
+        {/* Category filter + search */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+        <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="search tools..."
+            className="font-mono text-xs bg-zinc-900 border border-zinc-800 rounded px-3 py-1 text-zinc-300 placeholder-zinc-700 focus:outline-none focus:border-zinc-600 w-52"
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-1 mb-4 font-mono text-xs">
           <span className="text-zinc-700 mr-1">filter:</span>
           <button

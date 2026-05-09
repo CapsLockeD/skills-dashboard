@@ -22,8 +22,10 @@ export default function Dashboard() {
   const [scanHistory, setScanHistory] = useState<ScanHistory | null>(null)
   const [authorCache, setAuthorCache] = useState<AuthorCache | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
+  const [scanningIds, setScanningIds] = useState<Set<string>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -45,13 +47,21 @@ export default function Dashboard() {
   async function handleScanAll() {
     if (!registry) return
     setScanning(true)
+    const toScan = registry.resources.filter((r) => !r.skip_auto_update)
+    setScanningIds(new Set(toScan.map((r) => r.id)))
     await Promise.allSettled(
-      registry.resources
-        .filter((r) => !r.skip_auto_update)
-        .map((r) => fetch(`/api/scan/${r.id}`, { method: 'POST' }))
+      toScan.map(async (r) => {
+        await fetch(`/api/scan/${encodeURIComponent(r.id)}`, { method: 'POST' })
+        setScanningIds((prev) => {
+          const next = new Set(prev)
+          next.delete(r.id)
+          return next
+        })
+      })
     )
     await fetchData()
     setScanning(false)
+    setScanningIds(new Set())
   }
 
   async function handleRefreshAuthors() {
@@ -60,8 +70,12 @@ export default function Dashboard() {
     setAuthorCache(authors)
   }
 
-  async function handleAuthorRefresh(_authorId: string) {
-    await handleRefreshAuthors()
+  async function handleAuthorRefresh(authorId: string) {
+    const profile = await fetch(`/api/authors/${encodeURIComponent(authorId)}`, { method: 'POST' }).then((r) => r.json())
+    setAuthorCache((prev) => {
+      if (!prev) return prev
+      return { ...prev, authors: { ...prev.authors, [authorId]: profile } }
+    })
   }
 
   function handleResultUpdate(result: ScanResult) {
@@ -72,6 +86,10 @@ export default function Dashboard() {
       updated.results[result.resourceId] = [result, ...existing].slice(0, 10)
       return updated
     })
+  }
+
+  function handleDelete(id: string) {
+    setRegistry((prev) => prev ? { ...prev, resources: prev.resources.filter((r) => r.id !== id) } : prev)
   }
 
   const resources = registry?.resources ?? []
@@ -86,12 +104,24 @@ export default function Dashboard() {
     null
 
   const filteredResources = resources.filter((r) => {
-    if (filter === 'all') return true
     if (filter === 'flagged') {
       const latest = scanHistory?.results[r.id]?.[0]
-      return latest?.status === 'security-flag'
+      if (latest?.status !== 'security-flag') return false
+    } else if (filter !== 'all' && r.type !== filter) {
+      return false
     }
-    return r.type === filter
+
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    if (r.name.toLowerCase().includes(q)) return true
+    const subResources = scanHistory?.results[r.id]?.[0]?.subResources ?? []
+    return subResources.some(
+      (sr) =>
+        sr.name.toLowerCase().includes(q) ||
+        sr.description?.toLowerCase().includes(q) ||
+        sr.enrichment?.summary?.toLowerCase().includes(q) ||
+        sr.enrichment?.category?.toLowerCase().includes(q)
+    )
   })
 
   const counts = {
@@ -164,25 +194,34 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Filter bar */}
-        <div className="flex items-center gap-1 mb-4 font-mono text-xs">
-          <span className="text-zinc-700 mr-1">filter:</span>
-          {FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                filter === opt.value
-                  ? 'bg-zinc-700 text-zinc-100'
-                  : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
-              }`}
-            >
-              {opt.label}
-              {opt.value === 'flagged' && counts.flags > 0 && (
-                <span className="ml-1 text-red-400">({counts.flags})</span>
-              )}
-            </button>
-          ))}
+        {/* Filter + search bar */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-1 font-mono text-xs">
+            <span className="text-zinc-700 mr-1">filter:</span>
+            {FILTER_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setFilter(opt.value)}
+                className={`px-2.5 py-1 rounded transition-colors ${
+                  filter === opt.value
+                    ? 'bg-zinc-700 text-zinc-100'
+                    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
+                }`}
+              >
+                {opt.label}
+                {opt.value === 'flagged' && counts.flags > 0 && (
+                  <span className="ml-1 text-red-400">({counts.flags})</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="search skills..."
+            className="ml-auto font-mono text-xs bg-zinc-900 border border-zinc-800 rounded px-3 py-1 text-zinc-300 placeholder-zinc-700 focus:outline-none focus:border-zinc-600 w-52"
+          />
         </div>
 
         {/* Resource list — single column */}
@@ -216,6 +255,8 @@ export default function Dashboard() {
                 authorRef={resource.author_id ? (registry?.authors[resource.author_id] ?? null) : null}
                 onResultUpdate={handleResultUpdate}
                 onAuthorRefresh={handleAuthorRefresh}
+                onDelete={handleDelete}
+                externalScanning={scanningIds.has(resource.id)}
               />
             ))}
           </div>
@@ -225,9 +266,26 @@ export default function Dashboard() {
       {showAddModal && (
         <AddResourceModal
           onClose={() => setShowAddModal(false)}
-          onAdded={() => {
+          onAdded={async (newResourceId) => {
             setShowAddModal(false)
-            fetchData()
+            await fetchData()
+            // Auto-scan the new resource and refresh authors in parallel
+            if (newResourceId) {
+              setScanningIds((prev) => new Set([...prev, newResourceId]))
+              fetch(`/api/scan/${encodeURIComponent(newResourceId)}`, { method: 'POST' })
+                .then((r) => r.json())
+                .then((result) => handleResultUpdate(result))
+                .finally(() => setScanningIds((prev) => {
+                  const next = new Set(prev)
+                  next.delete(newResourceId)
+                  return next
+                }))
+              // Enrich the author profile in the background
+              fetch('/api/authors', { method: 'POST' })
+                .then(() => fetch('/api/authors').then((r) => r.json()))
+                .then((authors) => setAuthorCache(authors))
+                .catch(() => {/* non-critical */})
+            }
           }}
         />
       )}

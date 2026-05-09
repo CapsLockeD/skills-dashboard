@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { scanResource, saveSingleResult } from '@/lib/scanner'
 
-export const maxDuration = 120
+export const maxDuration = 600
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

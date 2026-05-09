@@ -42,7 +42,8 @@ export async function reviewDiff(
   const truncatedDiff =
     diff.length > 8000 ? diff.slice(0, 8000) + '\n\n[diff truncated — review full diff manually]' : diff
 
-  const prompt = `Review this upstream update to a ${resourceType} called "${resourceName}".
+  const prompt = `/no_think
+Review this upstream update to a ${resourceType} called "${resourceName}".
 
 DIFF:
 ${truncatedDiff}
@@ -62,7 +63,9 @@ Respond with exactly this JSON shape:
 }`
 
   try {
-    const response = await aiComplete(prompt, SYSTEM_PROMPT)
+    const raw = await aiComplete(prompt, SYSTEM_PROMPT)
+    // Strip <think>...</think> blocks produced by reasoning models (e.g. qwen3)
+    const response = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
     const jsonMatch = response.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON found in AI response')
     const parsed = JSON.parse(jsonMatch[0])
