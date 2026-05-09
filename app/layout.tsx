@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
   title: 'Skills Dashboard',
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-950 text-gray-100 antialiased">{children}</body>
+      <body className="min-h-screen bg-[#080808] text-zinc-100 antialiased flex">
+        <Sidebar />
+        <div className="flex-1 ml-52 min-h-screen">{children}</div>
+      </body>
     </html>
   )
 }

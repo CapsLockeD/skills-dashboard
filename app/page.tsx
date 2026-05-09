@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { RefreshCw, Plus, Shield, LayoutGrid, BookOpen, Loader2, Wrench } from 'lucide-react'
+import { RefreshCw, Plus, Shield, BookOpen, Loader2, Terminal } from 'lucide-react'
 import { Registry, ScanHistory, AuthorCache, ScanResult, ResourceType } from '@/types'
 import ResourceCard from '@/components/ResourceCard'
 import AddResourceModal from '@/components/AddResourceModal'
@@ -11,11 +10,11 @@ import AddResourceModal from '@/components/AddResourceModal'
 type FilterType = 'all' | ResourceType | 'flagged'
 
 const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'claude-skill', label: 'Claude Skills' },
-  { value: 'n8n-workflow', label: 'n8n Workflows' },
-  { value: 'reference-kit', label: 'Reference Kits' },
-  { value: 'flagged', label: 'Security Flags' },
+  { value: 'all', label: 'all' },
+  { value: 'claude-skill', label: 'claude-skills' },
+  { value: 'n8n-workflow', label: 'n8n-workflows' },
+  { value: 'reference-kit', label: 'reference-kits' },
+  { value: 'flagged', label: 'flagged' },
 ]
 
 export default function Dashboard() {
@@ -46,7 +45,6 @@ export default function Dashboard() {
   async function handleScanAll() {
     if (!registry) return
     setScanning(true)
-    // Scan each resource concurrently for better throughput
     await Promise.allSettled(
       registry.resources
         .filter((r) => !r.skip_auto_update)
@@ -62,8 +60,7 @@ export default function Dashboard() {
     setAuthorCache(authors)
   }
 
-  async function handleAuthorRefresh(authorId: string) {
-    // Refresh all authors (simplest approach — the endpoint refreshes all)
+  async function handleAuthorRefresh(_authorId: string) {
     await handleRefreshAuthors()
   }
 
@@ -76,8 +73,6 @@ export default function Dashboard() {
       return updated
     })
   }
-
-  // ── Derived data ──────────────────────────────────────────────────────────
 
   const resources = registry?.resources ?? []
 
@@ -97,142 +92,112 @@ export default function Dashboard() {
     upToDate: resources.filter((r) => scanHistory?.results[r.id]?.[0]?.status === 'up-to-date').length,
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center">
-              <LayoutGrid size={15} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-white">Skills Dashboard</h1>
-              <p className="text-xs text-gray-500">
-                {scanHistory?.lastGlobalScan
-                  ? `Last scan ${formatDistanceToNow(new Date(scanHistory.lastGlobalScan), { addSuffix: true })}`
-                  : 'Never scanned'}
-              </p>
-            </div>
+    <div className="min-h-screen bg-[#080808]">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-zinc-800/60">
+        <div className="px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-zinc-600">
+            <Terminal size={12} />
+            <span className="font-mono text-xs">
+              resources
+              {scanHistory?.lastGlobalScan
+                ? ` · last_scan=${formatDistanceToNow(new Date(scanHistory.lastGlobalScan), { addSuffix: true })}`
+                : ' · never_scanned'}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Nav */}
-            <nav className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg p-1 mr-1">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-700 rounded">
-                <LayoutGrid size={12} />
-                Resources
-              </span>
-              <Link
-                href="/tools"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
-              >
-                <Wrench size={12} />
-                Tools
-              </Link>
-            </nav>
             <button
               onClick={handleRefreshAuthors}
               title="Refresh author profiles"
-              className="p-2 text-gray-500 hover:text-gray-200 hover:bg-gray-800 rounded transition-colors"
+              className="p-2 text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
             >
-              <BookOpen size={15} />
+              <BookOpen size={14} />
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 text-xs font-medium rounded transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs font-mono rounded transition-colors"
             >
-              <Plus size={13} />
-              Add Resource
+              <Plus size={12} />
+              add_resource
             </button>
             <button
               onClick={handleScanAll}
               disabled={scanning}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-700 hover:bg-blue-600 disabled:opacity-60 text-white text-xs font-medium rounded transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 disabled:opacity-50 text-cyan-400 text-xs font-mono rounded transition-colors"
             >
-              {scanning ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <RefreshCw size={13} />
-              )}
-              {scanning ? 'Scanning...' : 'Scan All'}
+              {scanning ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              {scanning ? 'scanning...' : 'scan_all'}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Stats bar */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Total Resources</p>
-            <p className="text-2xl font-bold text-white mt-0.5">{counts.total}</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Up to Date</p>
-            <p className="text-2xl font-bold text-green-400 mt-0.5">{counts.upToDate}</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Updates Available</p>
-            <p className="text-2xl font-bold text-blue-400 mt-0.5">{counts.updates}</p>
-          </div>
-          <div className={`bg-gray-900 border rounded-lg p-3 ${counts.flags > 0 ? 'border-red-900' : 'border-gray-800'}`}>
-            <p className="text-xs text-gray-500 flex items-center gap-1">
-              {counts.flags > 0 && <Shield size={11} className="text-red-400" />}
-              Security Flags
-            </p>
-            <p className={`text-2xl font-bold mt-0.5 ${counts.flags > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-              {counts.flags}
-            </p>
-          </div>
+      <main className="px-6 py-6">
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {[
+            { label: 'total', value: counts.total, color: 'text-zinc-100' },
+            { label: 'up_to_date', value: counts.upToDate, color: 'text-green-400' },
+            { label: 'updates_avail', value: counts.updates, color: 'text-cyan-400' },
+            { label: 'sec_flags', value: counts.flags, color: counts.flags > 0 ? 'text-red-400' : 'text-zinc-600' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-[#0f0f0f] border border-zinc-800/60 rounded p-3">
+              <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1">{label}</p>
+              <div className="flex items-end gap-1.5">
+                {label === 'sec_flags' && counts.flags > 0 && (
+                  <Shield size={12} className="text-red-400 mb-0.5" />
+                )}
+                <p className={`font-mono text-2xl font-bold ${color}`}>{value}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-1 mb-4 bg-gray-900 border border-gray-800 rounded-lg p-1 w-fit">
+        {/* Filter bar */}
+        <div className="flex items-center gap-1 mb-4 font-mono text-xs">
+          <span className="text-zinc-700 mr-1">filter:</span>
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+              className={`px-2.5 py-1 rounded transition-colors ${
                 filter === opt.value
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60'
               }`}
             >
               {opt.label}
               {opt.value === 'flagged' && counts.flags > 0 && (
-                <span className="ml-1.5 bg-red-900/60 text-red-400 text-xs px-1 py-0.5 rounded">
-                  {counts.flags}
-                </span>
+                <span className="ml-1 text-red-400">({counts.flags})</span>
               )}
             </button>
           ))}
         </div>
 
-        {/* Resource grid */}
+        {/* Resource list — single column */}
         {loading ? (
-          <div className="flex items-center justify-center py-24 gap-2 text-gray-500">
-            <Loader2 size={18} className="animate-spin" />
-            <span className="text-sm">Loading...</span>
+          <div className="flex items-center justify-center py-24 gap-2 text-zinc-600">
+            <Loader2 size={16} className="animate-spin" />
+            <span className="font-mono text-sm">loading...</span>
           </div>
         ) : filteredResources.length === 0 ? (
           <div className="text-center py-24">
-            <p className="text-gray-500 text-sm">
-              {filter === 'flagged' ? 'No security flags. All clear.' : 'No resources found.'}
+            <p className="font-mono text-zinc-600 text-sm">
+              {filter === 'flagged' ? '// no security flags · all clear' : '// no resources found'}
             </p>
             {filter === 'all' && resources.length === 0 && (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="mt-3 font-mono text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
               >
-                Add your first resource →
+                + add_resource →
               </button>
             )}
           </div>
         ) : (
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+          <div className="space-y-2">
             {filteredResources.map((resource) => (
               <ResourceCard
                 key={resource.id}
@@ -248,7 +213,6 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Add Resource Modal */}
       {showAddModal && (
         <AddResourceModal
           onClose={() => setShowAddModal(false)}
