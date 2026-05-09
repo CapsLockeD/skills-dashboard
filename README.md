@@ -9,7 +9,7 @@ A self-hosted monitoring dashboard for tracking AI skills, Claude Code skills, a
 - **Tracks** every skill and workflow you use, who made it, and where you got it
 - **Monitors** upstream git repos for changes on a weekly schedule (+ on-demand)
 - **Reviews** every update with AI: plain-English summary, endpoint change detection, security assessment, and a SAFE / REVIEW / DO NOT MERGE recommendation
-- **Profiles** authors automatically using the GitHub API and Firecrawl
+- **Profiles** authors automatically using the GitHub API, Brave Search, and Firecrawl
 - **Discovers** new skills by scanning a repo URL — finds SKILL.md files and n8n workflow JSONs automatically
 - **Runs anywhere** via Docker — hand it to another team, they clone it, fill in `.env`, and `docker-compose up`
 
@@ -143,16 +143,26 @@ AI_BASE_URL=http://host.docker.internal:11434/v1
 
 ---
 
-## Firecrawl Setup (Optional)
+## Author Discovery Setup (Optional)
 
-Firecrawl powers author profile enrichment — it scrapes author websites and social profiles to generate "Why Trust" summaries. The dashboard works without it; author cards will show basic GitHub data only.
+Author cards show name and GitHub info by default. Two optional services enhance this:
 
-### Self-hosted Firecrawl
+### Brave Search — finds Skool, social profiles, and websites via real web search
+Free tier: 2,000 queries/month. Get a key at https://api.search.brave.com/app/keys
 ```env
-FIRECRAWL_URL=http://your-firecrawl-server:3002
+BRAVE_SEARCH_API_KEY=BSA...
+```
+Without this, the dashboard falls back to parsing the author's GitHub profile README for links.
+
+### Firecrawl — scrapes author websites to generate "Why Trust" summaries
+
+#### Self-hosted Firecrawl
+```env
+FIRECRAWL_API_URL=http://your-firecrawl-server:3002
+FIRECRAWL_API_KEY=dummy
 ```
 
-### Firecrawl Cloud
+#### Firecrawl Cloud
 ```env
 FIRECRAWL_API_KEY=fc-...
 ```
@@ -236,7 +246,9 @@ skills-dashboard/
 │       ├── scan/[id]/       ← POST: scan single resource
 │       ├── merge/[id]/      ← POST: merge upstream into local
 │       ├── registry/        ← GET/PUT: read/write registry
-│       ├── authors/         ← GET/POST: read/refresh author cache
+│       ├── authors/         ← GET: read cache | POST: refresh all authors
+│       ├── authors/[id]/    ← POST: refresh single author
+│       ├── scan/[id]/progress/ ← GET: real-time scan progress (polled by UI)
 │       └── discover/        ← POST: discover or confirm from repo URL
 ├── lib/
 │   ├── ai-client.ts         ← Provider-agnostic AI completion
@@ -244,13 +256,16 @@ skills-dashboard/
 │   ├── git-ops.ts           ← Git clone / fetch / diff / merge
 │   ├── endpoint-extractor.ts← URL extraction from diffs
 │   ├── ai-reviewer.ts       ← Sends diffs to AI for review
-│   ├── author-lookup.ts     ← GitHub API + Firecrawl enrichment
+│   ├── author-lookup.ts     ← GitHub API + Brave Search + Firecrawl enrichment
+│   ├── skill-enricher.ts    ← AI enrichment for sub-skill descriptions
+│   ├── progress-store.ts    ← In-memory scan progress pub/sub
 │   ├── n8n-parser.ts        ← Parses n8n workflow JSON files
 │   ├── discovery.ts         ← Auto-discovers skills in a repo
 │   ├── registry.ts          ← Read/write registry.config.json
-│   └── scheduler.ts         ← node-cron weekly job
+│   └── scheduler.ts         ← node-cron weekly job (no system cron needed)
 ├── components/
 │   ├── ResourceCard.tsx     ← Card with expandable dropdown
+│   ├── ScanProgressBar.tsx  ← Real-time progress bar shown during scans
 │   ├── UpdatePanel.tsx      ← Diff + AI review + action buttons
 │   ├── AuthorPanel.tsx      ← Author info and social links
 │   ├── DiffViewer.tsx       ← Syntax-highlighted diff display
@@ -274,5 +289,5 @@ The scheduler only runs in `production` mode (`NODE_ENV=production`) to avoid do
 To test scanning locally without Docker, make sure `git` is installed and run:
 ```bash
 npm run dev
-# Then POST to http://localhost:3000/api/scan/ugc-factory-skill
+# Then POST to http://localhost:3000/api/scan/your-resource-id
 ```
