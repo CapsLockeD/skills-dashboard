@@ -50,7 +50,20 @@ function discoverSubResources(repoPath: string, resourceType: string): SubResour
     }).filter((s): s is SubResource => s !== null)
   }
 
-  // For Claude skills and reference kits: each SKILL.md directory is a sub-skill
+  if (resourceType === 'reference-kit') {
+    // For reference kits: each markdown file is a document sub-resource
+    return fs.readdirSync(repoPath, { withFileTypes: true })
+      .filter((e) => e.isFile() && /\.(md|mdx)$/i.test(e.name))
+      .map((e) => ({
+        name: e.name.replace(/\.(md|mdx)$/i, '').replace(/[-_]/g, ' '),
+        path: '/' + e.name,
+        type: 'skill' as const,
+        description: 'Reference document',
+        tools: [],
+      }))
+  }
+
+  // For Claude skills: each SKILL.md directory is a sub-skill
   return discoverSkillSubResources(repoPath)
 }
 
