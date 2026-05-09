@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { RefreshCw, Plus, Shield, LayoutGrid, BookOpen, Loader2 } from 'lucide-react'
+import { RefreshCw, Plus, Shield, LayoutGrid, BookOpen, Loader2, Wrench } from 'lucide-react'
 import { Registry, ScanHistory, AuthorCache, ScanResult, ResourceType } from '@/types'
 import ResourceCard from '@/components/ResourceCard'
 import AddResourceModal from '@/components/AddResourceModal'
@@ -118,6 +119,20 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Nav */}
+            <nav className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg p-1 mr-1">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-700 rounded">
+                <LayoutGrid size={12} />
+                Resources
+              </span>
+              <Link
+                href="/tools"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              >
+                <Wrench size={12} />
+                Tools
+              </Link>
+            </nav>
             <button
               onClick={handleRefreshAuthors}
               title="Refresh author profiles"
