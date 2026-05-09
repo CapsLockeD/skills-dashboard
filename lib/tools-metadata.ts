@@ -374,7 +374,7 @@ export const CATEGORY_COLORS: Record<ToolCategory, string> = {
 
 export const PRICING_COLORS: Record<string, string> = {
   'free': 'text-green-400',
-  'freemium': 'text-blue-400',
-  'usage-based': 'text-amber-400',
-  'subscription': 'text-red-400',
+  'freemium': 'text-cyan-400',
+  'usage-based': 'text-zinc-400',
+  'subscription': 'text-zinc-400',
 }

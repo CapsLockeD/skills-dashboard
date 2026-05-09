@@ -62,7 +62,7 @@ export default function ToolsPage() {
         <div className="grid grid-cols-3 gap-2 mb-6">
           {[
             { label: 'tools_in_use', value: tools.length, color: 'text-zinc-100', sub: 'across all scanned resources' },
-            { label: 'paid_or_key_reqd', value: paidCount, color: 'text-amber-400', sub: 'require purchase or billing' },
+            { label: 'paid_or_key_reqd', value: paidCount, color: 'text-zinc-100', sub: 'require purchase or billing' },
             { label: 'free_or_oauth', value: freeCount, color: 'text-green-400', sub: 'free or OAuth-based access' },
           ].map(({ label, value, color, sub }) => (
             <div key={label} className="bg-[#0f0f0f] border border-zinc-800/60 rounded p-3">
@@ -132,7 +132,7 @@ export default function ToolsPage() {
                     {/* paid/free dot */}
                     <div className="shrink-0">
                       {tool.mustPurchase
-                        ? <ShoppingCart size={13} className="text-amber-400" />
+                        ? <ShoppingCart size={13} className="text-zinc-500" />
                         : <CheckCircle size={13} className="text-green-400" />}
                     </div>
 
