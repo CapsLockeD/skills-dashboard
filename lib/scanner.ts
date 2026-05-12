@@ -8,6 +8,8 @@ import { reviewDiff } from './ai-reviewer'
 import { findN8nWorkflows, parseN8nWorkflow } from './n8n-parser'
 import { discoverSkillSubResources } from './skill-parser'
 import { isEnrichable, enrichBatch } from './skill-enricher'
+import { parseAutomationTool } from './tool-parser'
+import { getLibrarySummary, getLibraryServices } from './library-parser'
 import { initProgress, setTotal, logProgress, doneProgress } from './progress-store'
 
 function getDataDir(): string {
@@ -54,7 +56,7 @@ async function enrichThinSubSkills(
   resourceId: string
 ): Promise<void> {
   const toEnrich = subResources.filter(
-    (sr) => sr.type === 'skill' && isEnrichable(sr.description, sr.tools.length)
+    (sr) => (sr.type === 'skill' || sr.type === 'module') && isEnrichable(sr.description, sr.tools.length)
   )
   if (toEnrich.length === 0) {
     doneProgress(resourceId, '[scanner] no thin skills to enrich')
@@ -109,6 +111,18 @@ function discoverSubResources(repoPath: string, resourceType: string): SubResour
         description: 'Reference document',
         tools: [],
       }))
+  }
+
+  if (resourceType === 'automation-tool') {
+    const { subResources, tooLarge, totalFiles } = parseAutomationTool(repoPath)
+    if (tooLarge) {
+      console.log(`[scanner] automation-tool repo has ${totalFiles} files — capped at 100 modules, skipping AI enrichment`)
+    }
+    return subResources
+  }
+
+  if (resourceType === 'library') {
+    return getLibraryServices(repoPath)
   }
 
   // For Claude skills: each SKILL.md directory is a sub-skill
@@ -190,13 +204,21 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
       })
     }
 
-    if (resource.type !== 'n8n-workflow') {
+    const skipEnrich = resource.type === 'n8n-workflow' || resource.type === 'library' || subResources.length > 100
+    if (!skipEnrich) {
       await enrichThinSubSkills(subResources, repoPath, resourceId)
+    } else if (subResources.length > 100) {
+      logProgress(resourceId, `[scanner] ${subResources.length} modules — skipping AI enrichment for large repo`)
+      doneProgress(resourceId, '[scanner] done')
     }
-    // n8n-workflow skips enrichment — if up-to-date early return already fired doneProgress
-    // The doneProgress below handles the update-available/security-flag path
 
     if (commitsAhead === 0) {
+      let upToDateSummary = 'Repository is up to date with upstream.'
+      if (resource.type === 'library') {
+        logProgress(resourceId, '[scanner] generating README summary...')
+        const readmeSummary = await getLibrarySummary(repoPath)
+        if (readmeSummary) upToDateSummary = readmeSummary
+      }
       doneProgress(resourceId, '[scanner] up to date with upstream')
       return {
         ...base,
@@ -204,7 +226,7 @@ export async function scanResource(resourceId: string): Promise<ScanResult> {
         commitsAhead: 0,
         diff: '',
         endpointChanges: [],
-        aiSummary: 'Repository is up to date with upstream.',
+        aiSummary: upToDateSummary,
         aiSecurityAssessment: 'No changes to assess.',
         aiRecommendation: null,
         aiReasoning: '',

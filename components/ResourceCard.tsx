@@ -12,7 +12,36 @@ import ScanProgressBar from './ScanProgressBar'
 
 function SubResourceList({ subResources, type }: { subResources: SubResource[]; type: ResourceType }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null)
-  const label = type === 'n8n-workflow' ? 'workflows' : 'sub_skills'
+  const label =
+    type === 'n8n-workflow'    ? 'workflows' :
+    type === 'automation-tool' ? 'modules'   :
+    type === 'library'         ? 'ext_services' :
+    'sub_skills'
+
+  // Library type: flat service tags, no expand
+  if (type === 'library') {
+    const paid = subResources.filter(sr => sr.tools[0]?.mustPurchase)
+    const free = subResources.filter(sr => sr.tools[0] && !sr.tools[0].mustPurchase)
+    return (
+      <div>
+        <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
+          {label} ({subResources.length})
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {paid.map((sr, i) => (
+            <span key={i} className="font-mono text-[10px] px-2 py-0.5 rounded border border-amber-800/60 text-amber-400 bg-amber-950/20">
+              {sr.name} [paid]
+            </span>
+          ))}
+          {free.map((sr, i) => (
+            <span key={i} className="font-mono text-[10px] px-2 py-0.5 rounded border border-green-800/60 text-green-500 bg-green-950/20">
+              {sr.name}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -29,13 +58,23 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
           return (
             <div key={i} className="bg-zinc-900 border border-zinc-800/60 rounded">
               <button
-                onClick={() => setOpenIdx(isOpen ? null : i)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-zinc-800/30 transition-colors"
+                onClick={() => {
+                  const hasContent = sr.type !== 'module' || tools.length > 0 || !!sr.enrichment
+                  if (hasContent) setOpenIdx(isOpen ? null : i)
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
+                  sr.type === 'module' && tools.length === 0 && !sr.enrichment
+                    ? 'cursor-default'
+                    : 'hover:bg-zinc-800/30'
+                }`}
               >
                 <span className="font-mono text-[10px] text-zinc-700 shrink-0">
-                  {type === 'n8n-workflow' ? '⚙' : '→'}
+                  {type === 'n8n-workflow' ? '⚙' : type === 'automation-tool' ? '◈' : '→'}
                 </span>
-                <span className="font-mono text-xs text-zinc-300 flex-1 truncate">{sr.name}</span>
+                <span className="font-mono text-xs text-zinc-300 flex-1 truncate min-w-0">{sr.name}</span>
+                {sr.type === 'module' && sr.path && (
+                  <span className="font-mono text-[10px] text-zinc-700 truncate max-w-[120px] shrink hidden sm:block">{sr.path}</span>
+                )}
                 <div className="flex items-center gap-1.5 shrink-0">
                   {paidTools.length > 0 && (
                     <span className="font-mono text-[10px] text-amber-500">
@@ -47,17 +86,23 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
                       {freeTools.length} free
                     </span>
                   )}
-                  {tools.length === 0 && (
+                  {tools.length === 0 && sr.type !== 'module' && (
                     <span className="font-mono text-[10px] text-zinc-700">no tools</span>
                   )}
-                  {isOpen ? <ChevronUp size={11} className="text-zinc-600" /> : <ChevronDown size={11} className="text-zinc-600" />}
+                  {(sr.type !== 'module' || tools.length > 0 || !!sr.enrichment) && (
+                    isOpen ? <ChevronUp size={11} className="text-zinc-600" /> : <ChevronDown size={11} className="text-zinc-600" />
+                  )}
                 </div>
               </button>
 
               {isOpen && (
                 <div className="border-t border-zinc-800/60 px-3 pb-3 pt-2 space-y-2.5">
+                  {/* File path for modules */}
+                  {sr.type === 'module' && sr.path && (
+                    <p className="font-mono text-[10px] text-zinc-600">{sr.path}</p>
+                  )}
                   {/* Description or AI summary */}
-                  {(sr.enrichment?.summary || sr.description) && (
+                  {(sr.enrichment?.summary || (sr.description && sr.type !== 'module')) && (
                     <p className="text-xs text-zinc-400 leading-relaxed">
                       {sr.enrichment?.summary || sr.description}
                     </p>
@@ -144,17 +189,21 @@ function SubResourceList({ subResources, type }: { subResources: SubResource[]; 
 // ── Badge configs ─────────────────────────────────────────────────────────────
 
 const TYPE_BADGES: Record<ResourceType, string> = {
-  'claude-skill':  'border-purple-700 text-purple-400',
-  'n8n-workflow':  'border-orange-700 text-orange-400',
-  'reference-kit': 'border-cyan-700 text-cyan-400',
-  'mixed':         'border-zinc-700 text-zinc-400',
+  'claude-skill':    'border-purple-700 text-purple-400',
+  'n8n-workflow':    'border-orange-700 text-orange-400',
+  'reference-kit':   'border-cyan-700 text-cyan-400',
+  'mixed':           'border-zinc-700 text-zinc-400',
+  'automation-tool': 'border-emerald-700 text-emerald-400',
+  'library':         'border-blue-700 text-blue-400',
 }
 
 const TYPE_LABELS: Record<ResourceType, string> = {
-  'claude-skill':  'claude-skill',
-  'n8n-workflow':  'n8n-workflow',
-  'reference-kit': 'ref-kit',
-  'mixed':         'mixed',
+  'claude-skill':    'claude-skill',
+  'n8n-workflow':    'n8n-workflow',
+  'reference-kit':   'ref-kit',
+  'mixed':           'mixed',
+  'automation-tool': 'auto-tool',
+  'library':         'library',
 }
 
 const OWNERSHIP_LABELS: Record<OwnershipStatus, string> = {

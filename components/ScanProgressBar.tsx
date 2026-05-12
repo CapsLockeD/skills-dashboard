@@ -87,11 +87,15 @@ export default function ScanProgressBar({ resourceId, scanning }: ScanProgressBa
       } catch { /* ignore fetch errors during polling */ }
     }
 
-    // Poll immediately, then every POLL_MS
-    poll()
-    intervalRef.current = setInterval(poll, POLL_MS)
+    // Small delay before first poll so the server has time to register the scan,
+    // then poll every POLL_MS
+    const initial = setTimeout(() => {
+      poll()
+      intervalRef.current = setInterval(poll, POLL_MS)
+    }, 200)
 
     return () => {
+      clearTimeout(initial)
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null

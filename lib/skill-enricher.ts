@@ -80,22 +80,22 @@ function readSkillContent(skillPath: string): string {
 }
 
 const PROMPT_TEMPLATE = (content: string) => `/no_think
-You are analyzing an AI skill/prompt file to extract useful metadata for a developer dashboard.
+You are analyzing a file from a software project to extract useful metadata for a developer dashboard. The file may be an AI skill/prompt file, a source code module, a configuration file, or documentation.
 
-Read the following skill content carefully:
+Read the following content carefully:
 
 ${content}
 
 Extract structured information and respond with ONLY valid JSON (no markdown fences, no commentary):
 
 {
-  "summary": "2-3 sentences explaining what this skill does, what problem it solves, and when a developer would reach for it",
+  "summary": "1-2 sentences describing exactly what this file/module does and its role in the project",
   "category": "exactly one of: developer-tooling | seo | content-marketing | automation | data-analysis | communication | image-video | email | social-media | research | other",
-  "useCase": "one concrete sentence describing the most common or valuable use case",
-  "output": "one sentence describing what this skill produces or delivers as output",
+  "useCase": "one concrete sentence describing when or why you would use this",
+  "output": "one sentence describing what this produces or delivers",
   "complexity": "exactly one of: beginner | intermediate | advanced",
-  "standalone": true or false (false means it is explicitly designed to chain with or depend on other skills/tools),
-  "detectedTools": ["list any external APIs, services, or tools mentioned that would require accounts, credentials, or purchases — empty array if none"]
+  "standalone": true or false (false means it depends on other modules or must be called by something else),
+  "detectedTools": ["list any external APIs, services, SDKs, or paid tools used — empty array if none"]
 }`
 
 /** Returns true when a sub-skill is worth enriching with AI */

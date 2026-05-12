@@ -281,6 +281,8 @@ export default function AddResourceModal({ onClose, onAdded }: AddResourceModalP
                     <option value="claude-skill">Claude Skill</option>
                     <option value="n8n-workflow">n8n Workflow</option>
                     <option value="reference-kit">Reference Kit</option>
+                    <option value="automation-tool">Automation Tool</option>
+                    <option value="library">Library / Framework</option>
                     <option value="mixed">Mixed</option>
                   </select>
                 </div>

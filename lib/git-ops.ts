@@ -17,7 +17,18 @@ export async function ensureRepo(
   const repoPath = getRepoPath(resourceId)
   fs.mkdirSync(getReposDir(), { recursive: true })
 
-  if (!fs.existsSync(repoPath)) {
+  if (fs.existsSync(repoPath)) {
+    // Validate the directory is a healthy git repo (not a partial/killed clone)
+    try {
+      const git = simpleGit(repoPath)
+      await git.status()
+    } catch {
+      // Corrupted or incomplete clone — wipe and re-clone
+      console.log(`[git-ops] repo for ${resourceId} is invalid, re-cloning...`)
+      fs.rmSync(repoPath, { recursive: true, force: true })
+      await simpleGit().clone(upstreamUrl, repoPath)
+    }
+  } else {
     await simpleGit().clone(upstreamUrl, repoPath)
   }
 
@@ -25,7 +36,7 @@ export async function ensureRepo(
 }
 
 export async function fetchUpstream(git: SimpleGit): Promise<void> {
-  await git.fetch(['origin'])
+  await git.env({ GIT_TERMINAL_PROMPT: '0' }).fetch(['origin'])
 }
 
 export async function getCommitsAhead(git: SimpleGit): Promise<number> {

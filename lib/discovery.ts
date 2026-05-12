@@ -4,6 +4,7 @@ import { RegistryResource, ResourceType } from '../types'
 import { ensureRepo, getRepoPath } from './git-ops'
 import { readRegistry, writeRegistry } from './registry'
 import { isN8nWorkflow } from './n8n-parser'
+import { isAutomationTool, getSourceFiles } from './tool-parser'
 
 export interface DiscoveredResource {
   id: string
@@ -92,6 +93,29 @@ export async function discoverFromRepo(repoUrl: string): Promise<DiscoveredResou
   }
 
   walk(repoPath)
+
+  // If nothing was found via SKILL.md / n8n scan, check if it's an automation tool or library
+  if (discovered.length === 0 && isAutomationTool(repoPath)) {
+    let description = ''
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(repoPath, 'package.json'), 'utf-8'))
+      if (pkg.description) description = pkg.description
+    } catch { /* no package.json or invalid */ }
+
+    // Large repos (>100 source files) are libraries/frameworks, not runnable tools
+    const fileCount = getSourceFiles(repoPath).length
+    const isLibrary = fileCount > 100
+
+    const repoName = path.basename(repoPath).replace(/^_discover-[^-]+-[^-]+-/, '')
+    discovered.push({
+      id: slugify(repoName),
+      name: repoName.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      relativePath: '/',
+      type: isLibrary ? 'library' : 'automation-tool',
+      description: description || (isLibrary ? 'Library / framework' : 'Standalone automation tool'),
+    })
+  }
+
   return discovered
 }
 
@@ -131,11 +155,17 @@ export function confirmDiscovery(
   // Build a notes summary from what was found
   const skillCount = allDiscovered.filter((d) => d.type === 'claude-skill').length
   const workflowCount = allDiscovered.filter((d) => d.type === 'n8n-workflow').length
+  const toolItem = allDiscovered.find((d) => d.type === 'automation-tool')
   const noteParts = [
     skillCount > 0 ? `${skillCount} Claude skill${skillCount !== 1 ? 's' : ''}` : '',
     workflowCount > 0 ? `${workflowCount} n8n workflow${workflowCount !== 1 ? 's' : ''}` : '',
   ].filter(Boolean)
-  const notes = noteParts.length > 0 ? `${noteParts.join(', ')} — sub-skills discovered on scan.` : ''
+  const notes =
+    toolItem?.description
+      ? toolItem.description
+      : noteParts.length > 0
+      ? `${noteParts.join(', ')} — sub-skills discovered on scan.`
+      : ''
 
   const resource: RegistryResource = {
     id,

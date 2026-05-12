@@ -135,6 +135,126 @@
       "skip_auto_update": true,
       "sub_resource_ids": [],
       "discovered_from": null
+    },
+    {
+      "id": "codex-skills-library",
+      "name": "Codex Skills Library",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "proflead",
+      "upstream_git_url": "https://github.com/proflead/codex-skills-library.git",
+      "local_path": null,
+      "download_origin": "https://github.com/proflead/codex-skills-library.git",
+      "category": "uncategorized",
+      "notes": "60 Claude skills — sub-skills discovered on scan.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/proflead/codex-skills-library.git"
+    },
+    {
+      "id": "aaa-authority-acceleration",
+      "name": "Aaa Authority Acceleration",
+      "type": "n8n-workflow",
+      "ownership_status": "external",
+      "author_id": "zach-lloyd-dev",
+      "upstream_git_url": "https://github.com/zach-lloyd-dev/aaa-authority-acceleration.git",
+      "local_path": null,
+      "download_origin": "https://github.com/zach-lloyd-dev/aaa-authority-acceleration.git",
+      "category": "uncategorized",
+      "notes": "1 n8n workflow — sub-skills discovered on scan.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/zach-lloyd-dev/aaa-authority-acceleration.git"
+    },
+    {
+      "id": "upload-post-larry-marketing-skill",
+      "name": "Upload Post Larry Marketing Skill",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "upload-post",
+      "upstream_git_url": "https://github.com/Upload-Post/upload-post-larry-marketing-skill.git",
+      "local_path": null,
+      "download_origin": "https://github.com/Upload-Post/upload-post-larry-marketing-skill.git",
+      "category": "uncategorized",
+      "notes": "",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/Upload-Post/upload-post-larry-marketing-skill.git"
+    },
+    {
+      "id": "remotion",
+      "name": "Remotion",
+      "type": "library",
+      "ownership_status": "external",
+      "author_id": "remotion-dev",
+      "upstream_git_url": "https://github.com/remotion-dev/remotion.git",
+      "local_path": null,
+      "download_origin": "GitHub — https://github.com/remotion-dev/remotion",
+      "category": "video-generation",
+      "notes": "React-based framework for creating videos programmatically. Write video compositions in React, render to MP4/GIF/WebM. Large monorepo — scans for external service deps only, no per-file breakdown.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/remotion-dev/remotion.git"
+    },
+    {
+      "id": "zero-to-automated-skool-resources",
+      "name": "Zero To Automated Skool Resources",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "zach-lloyd-dev",
+      "upstream_git_url": "https://github.com/zach-lloyd-dev/zero-to-automated-skool-resources.git",
+      "local_path": null,
+      "download_origin": "https://github.com/zach-lloyd-dev/zero-to-automated-skool-resources.git",
+      "category": "uncategorized",
+      "notes": "8 Claude skills — sub-skills discovered on scan.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/zach-lloyd-dev/zero-to-automated-skool-resources.git"
+    },
+    {
+      "id": "zta-daily-brief",
+      "name": "ZTA Daily Brief",
+      "type": "automation-tool",
+      "ownership_status": "external",
+      "author_id": "takeoff-team",
+      "upstream_git_url": "https://github.com/TakeOff-Team/zta-daily-brief.git",
+      "local_path": null,
+      "download_origin": "GitHub — https://github.com/TakeOff-Team/zta-daily-brief",
+      "category": "content-research",
+      "notes": "Personalized daily briefing tool. Scrapes Reddit (free), Twitter/X via Apify (~$0.02/run), and YouTube RSS. Uses Claude Haiku to synthesize into a structured brief. Delivers via Resend email and/or markdown file. Runs on GitHub Actions cron (daily 8am UTC). ~$0.63/month with Twitter, free without.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/TakeOff-Team/zta-daily-brief.git"
+    },
+    {
+      "id": "ga4-analyst-tool",
+      "name": "GA4 Analyst Dashboard",
+      "type": "automation-tool",
+      "ownership_status": "external",
+      "author_id": "takeoff-team",
+      "upstream_git_url": "https://github.com/TakeOff-Team/GA4-analyst-tool.git",
+      "local_path": null,
+      "download_origin": "GitHub — https://github.com/TakeOff-Team/GA4-analyst-tool",
+      "category": "analytics",
+      "notes": "Next.js 14 web dashboard for Google Analytics 4. Multi-page UI: Overview, Traffic, Content, Audience, Conversions, Devices. Connects to GA4 Data API via service account. Recharts visualizations. SendGrid email reports. Vercel-ready deployment.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/TakeOff-Team/GA4-analyst-tool.git"
+    },
+    {
+      "id": "openclaw-100k-posts-kit",
+      "name": "Openclaw 100k Posts Kit",
+      "type": "claude-skill",
+      "ownership_status": "external",
+      "author_id": "themattberman",
+      "upstream_git_url": "https://github.com/TheMattBerman/openclaw-100k-posts-kit.git",
+      "local_path": null,
+      "download_origin": "https://github.com/TheMattBerman/openclaw-100k-posts-kit.git",
+      "category": "uncategorized",
+      "notes": "8 Claude skills — sub-skills discovered on scan.",
+      "skip_auto_update": false,
+      "sub_resource_ids": [],
+      "discovered_from": "https://github.com/TheMattBerman/openclaw-100k-posts-kit.git"
     }
   ],
   "authors": {
@@ -155,6 +275,32 @@
       "github": "the-vibe-marketers",
       "twitter": null,
       "website": null
+    },
+    "proflead": {
+      "name": "proflead",
+      "github": "proflead",
+      "twitter": null,
+      "website": null
+    },
+    "zach-lloyd-dev": {
+      "name": "zach-lloyd-dev",
+      "github": "zach-lloyd-dev"
+    },
+    "upload-post": {
+      "name": "Upload-Post",
+      "github": "Upload-Post"
+    },
+    "remotion-dev": {
+      "name": "remotion-dev",
+      "github": "remotion-dev"
+    },
+    "takeoff-team": {
+      "name": "TakeOff-Team",
+      "github": "TakeOff-Team"
+    },
+    "themattberman": {
+      "name": "TheMattBerman",
+      "github": "TheMattBerman"
     }
   }
 }

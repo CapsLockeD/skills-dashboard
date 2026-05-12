@@ -1,4 +1,4 @@
-export type ResourceType = 'claude-skill' | 'n8n-workflow' | 'reference-kit' | 'mixed'
+export type ResourceType = 'claude-skill' | 'n8n-workflow' | 'reference-kit' | 'mixed' | 'automation-tool' | 'library'
 export type OwnershipStatus = 'external' | 'monitored' | 'vendored' | 'internal'
 export type ScanStatus =
   | 'up-to-date'
@@ -66,7 +66,7 @@ export interface SubResourceEnrichment {
 export interface SubResource {
   name: string
   path: string
-  type: 'skill' | 'workflow'
+  type: 'skill' | 'workflow' | 'module'
   description?: string
   tools: ToolUsage[]
   enrichment?: SubResourceEnrichment
